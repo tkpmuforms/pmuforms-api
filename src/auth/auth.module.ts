@@ -9,7 +9,6 @@ import { JwtModule } from '@nestjs/jwt';
   imports: [
     JwtModule.register({
       global: true,
-      signOptions: { expiresIn: '30d' },
     }),
     // {
     //   provide: APP_GUARD,

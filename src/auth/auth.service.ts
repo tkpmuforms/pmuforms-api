@@ -9,7 +9,7 @@ import { Model } from 'mongoose';
 import { SignInDto, SignUpDto } from './dto';
 import * as argon from 'argon2';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from 'src/config/config.service';
+import { AppConfigService } from 'src/config/config.service';
 
 export interface IUser {
   email: string;
@@ -22,7 +22,7 @@ export class AuthService {
   constructor(
     @InjectModel('User') private userModel: Model<IUser>,
     private jwtService: JwtService,
-    private configService: ConfigService,
+    private configService: AppConfigService,
   ) {}
 
   /* Sign up a new user */
@@ -43,6 +43,15 @@ export class AuthService {
     return newUser;
   }
 
+  private async signToken(userId: string, email: string) {
+    const payload = { email, sub: userId };
+    const token = await this.jwtService.signAsync(payload, {
+      secret: this.configService.get('JWT_SECRET'),
+      expiresIn: '30d',
+    });
+    return token;
+  }
+
   /* Sign In- creates a JWT */
   async signIn(
     signInDto: SignInDto,
@@ -60,16 +69,22 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = {
-      sub: existingUser._id,
-      firstName: existingUser.firstName,
-    };
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get('JWT_SECRET'),
-    });
+    const accessToken = await this.signToken(
+      existingUser._id.toString(),
+      existingUser.email,
+    );
+
     return {
       access_token: accessToken,
       user: existingUser,
     };
+  }
+
+  async me(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 }

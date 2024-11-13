@@ -1,7 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { ConfigModule as DefaultConfigModule } from '@nestjs/config';
 import { configSchema } from './config.schema';
-import { ConfigService } from './config.service';
+import { AppConfigService } from './config.service';
 
 @Global()
 @Module({
@@ -12,10 +12,10 @@ import { ConfigService } from './config.service';
       load: [() => validateConfig(process.env)],
     }),
   ],
-  providers: [ConfigService],
-  exports: [ConfigService],
+  providers: [AppConfigService],
+  exports: [AppConfigService],
 })
-export class ConfigModule {}
+export class AppConfigModule {}
 
 function validateConfig(config: Record<string, unknown>) {
   const result = configSchema.safeParse(config);
