@@ -1,7 +1,7 @@
 // src/database/database.module.ts
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from './schema/user.schema';
+import { UserSchema } from './schema';
 import { AppConfigService } from 'src/config/config.service';
 import { AppConfigModule } from 'src/config/config.module';
 

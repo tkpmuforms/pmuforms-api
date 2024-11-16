@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { SignInDto, SignUpDto } from './dto';
 import * as argon from 'argon2';
 import { JwtService } from '@nestjs/jwt';
+import { SignInDto, SignUpDto } from './dto';
 import { AppConfigService } from 'src/config/config.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 export interface IUser {
   email: string;
@@ -23,6 +24,7 @@ export class AuthService {
     @InjectModel('User') private userModel: Model<IUser>,
     private jwtService: JwtService,
     private configService: AppConfigService,
+    private firebaseService: FirebaseService,
   ) {}
 
   /* Sign up a new user */
