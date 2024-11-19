@@ -1,7 +1,7 @@
 // src/database/database.module.ts
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema } from './schema';
+import { CustomerSchema, RelationshipSchema, UserSchema } from './schema';
 import { AppConfigService } from 'src/config/config.service';
 import { AppConfigModule } from 'src/config/config.module';
 
@@ -16,7 +16,11 @@ import { AppConfigModule } from 'src/config/config.module';
       }),
       inject: [AppConfigService],
     }),
-    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: 'User', schema: UserSchema },
+      { name: 'Customer', schema: CustomerSchema },
+      { name: 'Relationship', schema: RelationshipSchema },
+    ]),
   ],
   exports: [MongooseModule],
 })

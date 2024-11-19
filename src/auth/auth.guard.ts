@@ -11,13 +11,15 @@ import { Reflector } from '@nestjs/core';
 import { AppConfigService } from 'src/config/config.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { IUser } from './auth.service';
+import { UserDocument, CustomerDocument } from 'src/database/schema';
+import { UserRole } from 'src/enums';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
-    @InjectModel('User') private userModel: Model<IUser>,
+    @InjectModel('User') private userModel: Model<UserDocument>,
+    @InjectModel('Customer') private customerModel: Model<CustomerDocument>,
     private configService: AppConfigService,
     private reflector: Reflector,
   ) {}
@@ -39,8 +41,16 @@ export class AuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.get('JWT_SECRET'),
       });
+
       // Get the user from the database
-      const user = await this.userModel.findById(payload.sub);
+      let user: any;
+
+      if (payload.role === UserRole.ARTIST) {
+        user = await this.userModel.findById({ id: payload.sub });
+      }
+      if (payload.role === UserRole.CUSTOMER) {
+        user = await this.customerModel.findOne({ id: payload.sub });
+      }
       if (!user) {
         throw new UnauthorizedException();
       }

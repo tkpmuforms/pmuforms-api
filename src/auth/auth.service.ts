@@ -1,52 +1,24 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import * as argon from 'argon2';
 import { JwtService } from '@nestjs/jwt';
-import { SignInDto, SignUpDto } from './dto';
 import { AppConfigService } from 'src/config/config.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
-
-export interface IUser {
-  email: string;
-  password: string;
-  firstName: string;
-}
+import { CustomerDocument, UserDocument } from 'src/database/schema';
+import { UserRole } from 'src/enums';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel('User') private userModel: Model<IUser>,
+    @InjectModel('User') private userModel: Model<UserDocument>,
+    @InjectModel('Customer') private customerModel: Model<CustomerDocument>,
     private jwtService: JwtService,
     private configService: AppConfigService,
     private firebaseService: FirebaseService,
   ) {}
 
-  /* Sign up a new user */
-  async signUp(signUpDto: SignUpDto): Promise<IUser> {
-    const { email, password } = signUpDto;
-    // handle already existing user
-    const existingUser = await this.userModel.findOne({ email });
-    if (existingUser) {
-      throw new BadRequestException(`User with #${email} already exists`);
-    }
-    //
-    const hashedPassword = await argon.hash(password);
-    const newUser = await this.userModel.create({
-      ...signUpDto,
-      password: hashedPassword,
-    });
-
-    return newUser;
-  }
-
-  private async signToken(userId: string, email: string) {
-    const payload = { email, sub: userId };
+  private async signToken(userId: string, role: UserRole) {
+    const payload = { role, sub: userId };
     const token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_SECRET'),
       expiresIn: '30d',
@@ -54,32 +26,65 @@ export class AuthService {
     return token;
   }
 
-  /* Sign In- creates a JWT */
-  async signIn(
-    signInDto: SignInDto,
-  ): Promise<{ user: IUser; access_token: string }> {
-    const { email, password } = signInDto;
+  async createUser(accessToken: string) {
+    const auth = await this.firebaseService.verifyIdToken(accessToken);
 
-    const existingUser = await this.userModel.findOne({ email });
-    if (!existingUser) {
-      throw new NotFoundException(`User with email ${email} not found`);
-    }
+    const { uid: artistId, email, name } = auth;
 
-    const isValidPassword = await argon.verify(existingUser.password, password);
-
-    if (!isValidPassword) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    const accessToken = await this.signToken(
-      existingUser._id.toString(),
-      existingUser.email,
+    const artist = await this.userModel.findOneAndUpdate(
+      {
+        userId: artistId,
+      },
+      { userId: artistId, email, businessName: name ?? 'New Business' },
+      { upsert: true },
     );
 
-    return {
-      access_token: accessToken,
-      user: existingUser,
-    };
+    const access_token = await this.signToken(artist.id, UserRole.ARTIST);
+    return { access_token, artist };
+  }
+
+  async createCustomer(accessToken: string) {
+    const auth = await this.firebaseService.verifyIdToken(accessToken);
+
+    //     "auth": {
+    //     "name": "Akinola Akinleye",
+    //     "picture": "https://lh3.googleusercontent.com/a/ACg8ocIT3W9HpNUZC7gXE6rnbgYdgTrkVljbNViDOQ8gK_AnRI9XrGw=s96-c",
+    //     "iss": "https://securetoken.google.com/fir-frontend-b3d9d",
+    //     "aud": "fir-frontend-b3d9d",
+    //     "auth_time": 1732028165,
+    //     "user_id": "yp26mrvalfWtAjebQdlkmIIg5Rg2",
+    //     "sub": "yp26mrvalfWtAjebQdlkmIIg5Rg2",
+    //     "iat": 1732028165,
+    //     "exp": 1732031765,
+    //     "email": "akin.akinleye619@gmail.com",
+    //     "email_verified": true,
+    //     "firebase": {
+    //         "identities": {
+    //             "google.com": [
+    //                 "102843623060718762866"
+    //             ],
+    //             "email": [
+    //                 "akin.akinleye619@gmail.com"
+    //             ]
+    //         },
+    //         "sign_in_provider": "google.com"
+    //     },
+    //     "uid": "yp26mrvalfWtAjebQdlkmIIg5Rg2"
+    // },
+    // "customer": null
+
+    const { uid: customerId, email, name } = auth;
+
+    const customer = await this.customerModel.findOneAndUpdate(
+      {
+        id: customerId,
+      },
+      { id: customerId, email, info: { client_name: name ?? 'New Customer' } },
+      { upsert: true },
+    );
+
+    const access_token = await this.signToken(customer.id, UserRole.CUSTOMER);
+    return { access_token, customer };
   }
 
   async me(userId: string) {

@@ -1,26 +1,37 @@
-import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
-export class SignUpDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
+export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
-  password: string;
-
+  accessToken: string;
+}
+export class CreateArtistDto {
   @IsString()
   @IsNotEmpty()
-  @MaxLength(30)
-  firstName: string;
+  accessToken: string;
 }
 
-export class SignInDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
+// export class SignUpDto {
+//   @IsEmail()
+//   @IsNotEmpty()
+//   email: string;
 
-  @IsString()
-  @IsNotEmpty()
-  password: string;
-}
+//   @IsString()
+//   @IsNotEmpty()
+//   password: string;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   @MaxLength(30)
+//   firstName: string;
+// }
+
+// export class SignInDto {
+//   @IsEmail()
+//   @IsNotEmpty()
+//   email: string;
+
+//   @IsString()
+//   @IsNotEmpty()
+//   password: string;
+// }
