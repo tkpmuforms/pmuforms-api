@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -21,7 +25,7 @@ export class AuthService {
     const payload = { role, sub: userId };
     const token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_SECRET'),
-      expiresIn: '30d',
+      expiresIn: '30d', // TODO- find how about the jwt expiry
     });
     return token;
   }
@@ -29,7 +33,11 @@ export class AuthService {
   async createUser(accessToken: string) {
     const auth = await this.firebaseService.verifyIdToken(accessToken);
 
-    const { uid: artistId, email, name } = auth;
+    const { uid: artistId, email, name, email_verified } = auth;
+
+    if (!email_verified) {
+      throw new UnauthorizedException('Email not verified');
+    }
 
     const artist = await this.userModel.findOneAndUpdate(
       {
@@ -73,7 +81,11 @@ export class AuthService {
     // },
     // "customer": null
 
-    const { uid: customerId, email, name } = auth;
+    const { uid: customerId, email, name, email_verified } = auth;
+
+    if (!email_verified) {
+      throw new UnauthorizedException('Email not verified');
+    }
 
     const customer = await this.customerModel.findOneAndUpdate(
       {
