@@ -4,6 +4,10 @@ export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
   accessToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  artistId: string;
 }
 export class CreateArtistDto {
   @IsString()

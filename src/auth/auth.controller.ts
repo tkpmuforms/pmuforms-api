@@ -32,6 +32,7 @@ export class AuthController {
   async createCustomer(@Body() customerDto: CreateCustomerDto) {
     const customer = await this.authService.createCustomer(
       customerDto.accessToken,
+      customerDto.artistId,
     );
     return customer;
   }
