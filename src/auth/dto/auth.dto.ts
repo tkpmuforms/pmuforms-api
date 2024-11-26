@@ -14,28 +14,3 @@ export class CreateArtistDto {
   @IsNotEmpty()
   accessToken: string;
 }
-
-// export class SignUpDto {
-//   @IsEmail()
-//   @IsNotEmpty()
-//   email: string;
-
-//   @IsString()
-//   @IsNotEmpty()
-//   password: string;
-
-//   @IsString()
-//   @IsNotEmpty()
-//   @MaxLength(30)
-//   firstName: string;
-// }
-
-// export class SignInDto {
-//   @IsEmail()
-//   @IsNotEmpty()
-//   email: string;
-
-//   @IsString()
-//   @IsNotEmpty()
-//   password: string;
-// }

@@ -31,7 +31,7 @@ export class AuthService {
     const payload = { role, sub: userId };
     const token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_SECRET'),
-      expiresIn: '30d', // TODO- find how about the jwt expiry
+      expiresIn: '90d', // 3 months
     });
     return token;
   }

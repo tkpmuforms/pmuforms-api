@@ -1,27 +1,22 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import path from 'node:path';
 import firebaseAdmin from 'firebase-admin';
+import { AppConfigService } from 'src/config/config.service';
 
 @Injectable()
 export class FirebaseService {
-  constructor() {
+  constructor(private config: AppConfigService) {
     // initialize firebase admin
-    const serviceAccountCredentialsPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'secrets',
-      'firebase-service-account-credentials.json',
+
+    const serviceAccountCreditials = JSON.parse(
+      config.get('FIREBASE_ADMIN_CREDENTIALS'),
     );
     try {
       firebaseAdmin.initializeApp({
-        credential: firebaseAdmin.credential.cert(
-          serviceAccountCredentialsPath,
-        ),
+        credential: firebaseAdmin.credential.cert(serviceAccountCreditials),
       });
     } catch (error: any) {
       console.info(`Failed to initialize firebase admin.
-        Suggestion: Create a file called '/secrets/firebase-service-account-credentials.json' in the project base directory with the appropriate firebase service account secrets from the firebase console. \n`);
+        Suggestion: The admin credentials are in JSON formate.\n Make sure the admin credentials are on a single line in your env file  \n`);
       console.error({ error });
     }
   }

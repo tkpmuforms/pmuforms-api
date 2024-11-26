@@ -8,6 +8,7 @@ export const configSchema = z.object({
   API_URL: z.string().url(),
   MONGO_URI: z.string(),
   JWT_SECRET: z.string(),
+  FIREBASE_ADMIN_CREDENTIALS: z.string(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

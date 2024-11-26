@@ -9,19 +9,6 @@ import { UserDocument } from 'src/database/schema';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // @Post('/sign-up')
-  // async signUp(@Body() signUpDto: SignUpDto) {
-  //   const newUser = await this.authService.signUp(signUpDto);
-  //   return newUser;
-  // }
-
-  // @HttpCode(HttpStatus.OK)
-  // @Post('/sign-in')
-  // async signIn(@Body() signInDto: SignInDto) {
-  //   const newUser = await this.authService.signIn(signInDto);
-  //   return newUser;
-  // }
-
   @UseGuards(AuthGuard)
   @Get('/me')
   async getMe(@GetUser() user: UserDocument) {
