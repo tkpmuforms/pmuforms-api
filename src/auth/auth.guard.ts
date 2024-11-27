@@ -18,8 +18,8 @@ import { UserRole } from 'src/enums';
 export class AuthGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
-    @InjectModel('User') private userModel: Model<UserDocument>,
-    @InjectModel('Customer') private customerModel: Model<CustomerDocument>,
+    @InjectModel('users') private userModel: Model<UserDocument>,
+    @InjectModel('customers') private customerModel: Model<CustomerDocument>,
     private configService: AppConfigService,
     private reflector: Reflector,
   ) {}

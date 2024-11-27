@@ -18,9 +18,9 @@ import { UserRole } from 'src/enums';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel('User') private userModel: Model<UserDocument>,
-    @InjectModel('Customer') private customerModel: Model<CustomerDocument>,
-    @InjectModel('Relationship')
+    @InjectModel('users') private userModel: Model<UserDocument>,
+    @InjectModel('customers') private customerModel: Model<CustomerDocument>,
+    @InjectModel('relationships')
     private relationshipModel: Model<RelationshipDocument>,
     private jwtService: JwtService,
     private configService: AppConfigService,

@@ -17,9 +17,9 @@ import { AppConfigModule } from 'src/config/config.module';
       inject: [AppConfigService],
     }),
     MongooseModule.forFeature([
-      { name: 'User', schema: UserSchema },
-      { name: 'Customer', schema: CustomerSchema },
-      { name: 'Relationship', schema: RelationshipSchema },
+      { name: 'users', schema: UserSchema },
+      { name: 'customers', schema: CustomerSchema },
+      { name: 'relationships', schema: RelationshipSchema },
     ]),
   ],
   exports: [MongooseModule],
