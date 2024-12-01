@@ -1,0 +1,17 @@
+services:
+  crud-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 1
+    ports:
+      - '3333:3333'
+    networks:
+      - backend
+
+networks:
+  backend:
+
+volumes:
+  mongo-data:

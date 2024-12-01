@@ -1,22 +1,29 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import firebaseAdmin from 'firebase-admin';
-import { AppConfigService } from 'src/config/config.service';
+import path from 'node:path';
 
 @Injectable()
 export class FirebaseService {
-  constructor(private config: AppConfigService) {
+  constructor() {
     // initialize firebase admin
 
-    const serviceAccountCreditials = JSON.parse(
-      config.get('FIREBASE_ADMIN_CREDENTIALS'),
+    // initialize firebase admin
+    const serviceAccountCredentialsPath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'secrets',
+      'firebase-service-account-credentials.json',
     );
     try {
       firebaseAdmin.initializeApp({
-        credential: firebaseAdmin.credential.cert(serviceAccountCreditials),
+        credential: firebaseAdmin.credential.cert(
+          serviceAccountCredentialsPath,
+        ),
       });
     } catch (error: any) {
       console.info(`Failed to initialize firebase admin.
-        Suggestion: The admin credentials are in JSON formate.\n Make sure the admin credentials are on a single line in your env file  \n`);
+        Suggestion: Create a file called '/secrets/firebase-service-account-credentials.json' in the project base directory with the appropriate firebase service account secrets from the firebase console. \n`);
       console.error({ error });
     }
   }
@@ -27,7 +34,9 @@ export class FirebaseService {
         const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
         return decodedToken;
       } catch (error) {
-        console.error('Error verifying Firebase ID token:', error);
+        if (error.code === 'auth/id-token-expired') {
+          throw new UnauthorizedException(error.message);
+        }
         throw new UnauthorizedException('Cannot validate login');
       }
     }

@@ -50,10 +50,10 @@ export class AuthService {
         userId: artistId,
       },
       { userId: artistId, email, businessName: name ?? 'New Business' },
-      { upsert: true },
+      { upsert: true, new: true },
     );
 
-    const access_token = await this.signToken(artist.id, UserRole.ARTIST);
+    const access_token = await this.signToken(artist.userId, UserRole.ARTIST);
     return { access_token, artist };
   }
 
@@ -66,7 +66,7 @@ export class AuthService {
       throw new UnauthorizedException('Email not verified');
     }
 
-    const artist = await this.userModel.findOne({ id: artistId });
+    const artist = await this.userModel.findOne({ userId: artistId });
 
     if (!artist) {
       throw new UnauthorizedException(`No artist found with id ${artistId}`);
@@ -77,7 +77,7 @@ export class AuthService {
         id: customerId,
       },
       { id: customerId, email, info: { client_name: name ?? 'New Customer' } },
-      { upsert: true },
+      { upsert: true, new: true },
     );
 
     //create relationship
