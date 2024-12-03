@@ -29,10 +29,15 @@ export class AuthService {
 
   private async signToken(userId: string, role: UserRole) {
     const payload = { role, sub: userId };
+
+    // 90 days for artists and 24hrs for customers
+    const duration = role === UserRole.ARTIST ? '90d' : '1d';
+
     const token = await this.jwtService.signAsync(payload, {
       secret: this.configService.get('JWT_SECRET'),
-      expiresIn: '90d', // 3 months
+      expiresIn: duration, // 3 months
     });
+
     return token;
   }
 
