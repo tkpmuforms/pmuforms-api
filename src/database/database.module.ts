@@ -1,7 +1,12 @@
 // src/database/database.module.ts
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { CustomerSchema, RelationshipSchema, UserSchema } from './schema';
+import {
+  CustomerSchema,
+  RelationshipSchema,
+  ServiceSchema,
+  UserSchema,
+} from './schema';
 import { AppConfigService } from 'src/config/config.service';
 import { AppConfigModule } from 'src/config/config.module';
 
@@ -20,6 +25,7 @@ import { AppConfigModule } from 'src/config/config.module';
       { name: 'users', schema: UserSchema },
       { name: 'customers', schema: CustomerSchema },
       { name: 'relationships', schema: RelationshipSchema },
+      { name: 'services', schema: ServiceSchema },
     ]),
   ],
   exports: [MongooseModule],
