@@ -6,13 +6,13 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { IS_PUBLIC_KEY } from './auth.module';
 import { Reflector } from '@nestjs/core';
 import { AppConfigService } from 'src/config/config.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument, CustomerDocument } from 'src/database/schema';
 import { UserRole } from 'src/enums';
+import { IS_PUBLIC_KEY } from './decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
