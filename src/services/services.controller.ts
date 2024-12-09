@@ -17,8 +17,8 @@ export class ServicesController {
   }
 
   @Get('/artist-services/:artistId')
-  async getOneArtistsServices(@Param('artistId') artistId: string) {
-    const services = await this.servicesService.getOneArtistsServices(artistId);
+  async getArtistServices(@Param('artistId') artistId: string) {
+    const services = await this.servicesService.getArtistServices(artistId);
 
     return { services };
   }

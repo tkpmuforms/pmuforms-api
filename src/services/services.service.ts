@@ -18,7 +18,7 @@ export class ServicesService {
     return services;
   }
 
-  async getOneArtistsServices(artistId: string) {
+  async getArtistServices(artistId: string) {
     const artist = await this.userModel.findOne({ userId: artistId });
     if (!artist) {
       throw new NotFoundException(`artist with id ${artistId} not found`);
