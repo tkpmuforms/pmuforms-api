@@ -152,7 +152,7 @@ export class AppointmentsService {
     return { metadata, appointments };
   }
 
-  async deleteAppointment(appointmentId: string, customerId: string) {
+  async deleteAppointment(customerId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
