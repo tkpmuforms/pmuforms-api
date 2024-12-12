@@ -9,6 +9,8 @@ import { ServicesModule } from './services/services.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { AppointmentsModule } from './appointments/appointments.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { RolesGuard } from './auth/roles.guard';
     AppConfigModule,
     DatabaseModule,
     ServicesModule,
+    AppointmentsModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [

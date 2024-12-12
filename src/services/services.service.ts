@@ -45,4 +45,10 @@ export class ServicesService {
 
     return artist;
   }
+
+  async getService(serviceId: number) {
+    const service = this.serviceModel.findOne({ id: serviceId });
+
+    return service;
+  }
 }

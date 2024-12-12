@@ -3,12 +3,16 @@ import { HydratedDocument } from 'mongoose';
 
 export type AppointmentDocument = HydratedDocument<Appointment>;
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+})
 export class Appointment {
   @Prop()
   id: string;
 
-  @Prop()
+  @Prop({ default: false })
   allFormsCompleted: boolean;
 
   @Prop()
@@ -26,10 +30,10 @@ export class Appointment {
   @Prop()
   signature_url: string;
 
-  @Prop()
+  @Prop({ default: false })
   signed: boolean;
 
-  @Prop()
+  @Prop({ default: false })
   deleted: boolean;
 }
 

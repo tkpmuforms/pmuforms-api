@@ -35,4 +35,10 @@ export class ServicesController {
     );
     return { services: artist.services };
   }
+
+  @Get('/:serviceId')
+  async getService(@Param('serviceId') serviceId: number) {
+    const service = await this.servicesService.getService(serviceId);
+    return { service };
+  }
 }
