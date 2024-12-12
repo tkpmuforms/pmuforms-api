@@ -3,13 +3,26 @@ import { HydratedDocument } from 'mongoose';
 
 export type RelationshipDocument = HydratedDocument<Relationship>;
 
-@Schema()
+@Schema({
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+})
 export class Relationship {
   @Prop()
   artistId: string;
 
   @Prop()
   customerId: string;
+
+  customer?: { [k: string]: any };
 }
 
 export const RelationshipSchema = SchemaFactory.createForClass(Relationship);
+
+RelationshipSchema.virtual('customer', {
+  ref: 'customers',
+  localField: 'customerId',
+  foreignField: 'id',
+  justOne: true,
+});

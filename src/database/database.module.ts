@@ -2,6 +2,7 @@
 import { Global, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import {
+  AppointmentSchema,
   CustomerSchema,
   RelationshipSchema,
   ServiceSchema,
@@ -26,6 +27,7 @@ import { AppConfigModule } from 'src/config/config.module';
       { name: 'customers', schema: CustomerSchema },
       { name: 'relationships', schema: RelationshipSchema },
       { name: 'services', schema: ServiceSchema },
+      { name: 'appointments', schema: AppointmentSchema },
     ]),
   ],
   exports: [MongooseModule],
