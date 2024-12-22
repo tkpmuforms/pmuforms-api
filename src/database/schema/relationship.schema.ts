@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { CustomerDocument } from './customer.schema';
 
 export type RelationshipDocument = HydratedDocument<Relationship>;
 
@@ -15,7 +16,7 @@ export class Relationship {
   @Prop()
   customerId: string;
 
-  customer?: { [k: string]: any };
+  customer?: CustomerDocument;
 }
 
 export const RelationshipSchema = SchemaFactory.createForClass(Relationship);

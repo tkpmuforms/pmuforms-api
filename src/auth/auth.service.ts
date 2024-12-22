@@ -81,7 +81,12 @@ export class AuthService {
       {
         id: customerId,
       },
-      { id: customerId, email, info: { client_name: name ?? 'New Customer' } },
+      {
+        id: customerId,
+        email,
+        name: name ?? 'New Customer',
+        info: { client_name: name ?? 'New Customer' },
+      },
       { upsert: true, new: true },
     );
 

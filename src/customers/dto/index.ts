@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, Min, IsString, IsNotEmpty } from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
   @IsOptional()
@@ -13,4 +13,24 @@ export class GetMyCustomersQueryParamsDto {
   @IsInt({ message: 'Limit must be an integer.' })
   @Min(1, { message: 'Limit must be at least 1.' })
   limit?: number;
+}
+
+export class CreateCustomerNoteDto {
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  note: string;
+}
+
+export class EditCustomerNoteDto {
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  note: string;
 }

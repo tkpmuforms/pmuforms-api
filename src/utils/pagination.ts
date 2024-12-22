@@ -14,7 +14,7 @@ export function paginationMetaGenerator(
   const lastPage = Math.ceil(totalCount / limit);
   const meta: PaginationMeta = {
     total: totalCount,
-    currentPage: page,
+    currentPage: Number(page),
     perPage: Math.min(limit, totalCount),
     lastPage,
     firstPage: 1,

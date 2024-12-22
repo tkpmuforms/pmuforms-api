@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, RootFilterQuery } from 'mongoose';
 import {
   AppointmentDocument,
+  CustomerDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
@@ -24,6 +25,8 @@ export class AppointmentsService {
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
+    @InjectModel('customers')
+    private customerModel: Model<CustomerDocument>,
   ) {}
 
   async getAllCustomerAppointments(
@@ -87,7 +90,7 @@ export class AppointmentsService {
 
     if (!relationship) {
       throw new ForbiddenException(
-        `You are not a customer of the artist with id ${artistId}`,
+        `Artist with id ${artistId} and customer with id ${customerId} have no relationship`,
       );
     }
 
