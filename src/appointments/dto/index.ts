@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 
-export class BookAnApppointmentDto {
+export class BookAnApppointmentAsCustomerDto {
   @IsNotEmpty()
   @Type(() => Date) // Ensures the value is transformed into a Date object
   @IsDate()
@@ -19,6 +19,22 @@ export class BookAnApppointmentDto {
   @IsString()
   @IsNotEmpty()
   artistId: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  services: number[];
+}
+export class BookAnApppointmentAsArtistDto {
+  @IsNotEmpty()
+  @Type(() => Date) // Ensures the value is transformed into a Date object
+  @IsDate()
+  appointmentDate: Date;
+
+  @IsString()
+  @IsNotEmpty()
+  customerId: string;
 
   @IsArray()
   @ArrayNotEmpty()

@@ -11,6 +11,7 @@ import { AuthGuard } from './auth/auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { CustomersModule } from './customers/customers.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CustomersModule } from './customers/customers.module';
     ServicesModule,
     AppointmentsModule,
     CustomersModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [

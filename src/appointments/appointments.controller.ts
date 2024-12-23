@@ -8,7 +8,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
-import { BookAnApppointmentDto, PaginationParamsDto } from './dto';
+import {
+  BookAnApppointmentAsArtistDto,
+  BookAnApppointmentAsCustomerDto,
+  PaginationParamsDto,
+} from './dto';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
@@ -48,15 +52,31 @@ export class AppointmentsController {
   }
 
   @Roles(UserRole.CUSTOMER)
-  @Post('/book-appointment')
-  async bookAppointment(
-    @Body() dto: BookAnApppointmentDto,
+  @Post('customer/book-appointment')
+  async bookAppointmentAsCustomer(
+    @Body() dto: BookAnApppointmentAsCustomerDto,
     @GetUser() customer: CustomerDocument,
   ) {
     const appointment = await this.appointmentsService.bookAppointment(
       dto.appointmentDate,
       dto.artistId,
       customer.id,
+      dto.services,
+    );
+
+    return { appointment };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Post('artist/book-appointment')
+  async bookAppointmentAsArtist(
+    @Body() dto: BookAnApppointmentAsArtistDto,
+    @GetUser() artist: UserDocument,
+  ) {
+    const appointment = await this.appointmentsService.bookAppointment(
+      dto.appointmentDate,
+      artist.userId,
+      dto.customerId,
       dto.services,
     );
 

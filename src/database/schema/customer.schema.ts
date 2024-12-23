@@ -50,13 +50,16 @@ export class Info {
 
 const InfoSchema = SchemaFactory.createForClass(Info);
 
-@Schema()
+@Schema({ timestamps: true })
 export class Note {
-  @Prop({ required: true })
+  @Prop()
   id: string;
 
-  @Prop({ required: true })
-  date: Date;
+  @Prop()
+  date: Date; //might remove and use default timestamps
+
+  @Prop()
+  imageUrl?: string;
 
   @Prop({ required: true })
   note: string;
@@ -69,7 +72,7 @@ export class Customer {
   @Prop()
   id: string;
 
-  @Prop({ required: true })
+  @Prop()
   name: string;
 
   @Prop()
@@ -84,7 +87,7 @@ export class Customer {
   @Prop({ type: InfoSchema }) // Embedding the subschema
   info: Info;
 
-  @Prop({ type: [NoteSchema] })
+  @Prop({ type: [NoteSchema], default: [] })
   notes: Note[];
 }
 
