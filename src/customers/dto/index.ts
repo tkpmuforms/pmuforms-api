@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min, IsString, IsNotEmpty } from 'class-validator';
+import {
+  IsInt,
+  IsOptional,
+  Min,
+  IsString,
+  IsNotEmpty,
+  Max,
+} from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
   @IsOptional()
@@ -22,6 +29,7 @@ export class CreateCustomerNoteDto {
 
   @IsString()
   @IsNotEmpty()
+  @Max(500)
   note: string;
 }
 
@@ -32,5 +40,6 @@ export class EditCustomerNoteDto {
 
   @IsString()
   @IsNotEmpty()
+  @Max(500)
   note: string;
 }
