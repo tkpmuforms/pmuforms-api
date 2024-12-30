@@ -20,4 +20,14 @@ export class UsersService {
 
     return artist;
   }
+
+  async getAnArtist(artistId: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    return artist;
+  }
 }
