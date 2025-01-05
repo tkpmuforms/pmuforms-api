@@ -4,6 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import {
   AppointmentSchema,
   CustomerSchema,
+  FilledFormSchema,
+  FormTemplateSchema,
   RelationshipSchema,
   ServiceSchema,
   UserSchema,
@@ -28,6 +30,8 @@ import { AppConfigModule } from 'src/config/config.module';
       { name: 'relationships', schema: RelationshipSchema },
       { name: 'services', schema: ServiceSchema },
       { name: 'appointments', schema: AppointmentSchema },
+      { name: 'form-templates', schema: FormTemplateSchema },
+      { name: 'filled-forms', schema: FilledFormSchema },
     ]),
   ],
   exports: [MongooseModule],

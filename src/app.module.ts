@@ -12,6 +12,8 @@ import { RolesGuard } from './auth/roles.guard';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { CustomersModule } from './customers/customers.module';
 import { UsersModule } from './users/users.module';
+import { FormsModule } from './forms/forms.module';
+import { FilledFormsModule } from './filled-forms/filled-forms.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { UsersModule } from './users/users.module';
     AppointmentsModule,
     CustomersModule,
     UsersModule,
+    FormsModule,
+    FilledFormsModule,
   ],
   controllers: [AppController],
   providers: [
