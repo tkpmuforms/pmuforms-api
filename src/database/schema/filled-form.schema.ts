@@ -7,6 +7,15 @@ export type FilledFormDocument = mongoose.HydratedDocument<FilledForm>;
 export class FilledForm {
   @Prop({ type: mongoose.Schema.Types.Mixed })
   data: any;
+
+  @Prop()
+  appointmentId: string;
+
+  @Prop()
+  clientId: string;
+
+  @Prop()
+  formTemplateId: string;
 }
 
 export const FilledFormSchema = SchemaFactory.createForClass(FilledForm);

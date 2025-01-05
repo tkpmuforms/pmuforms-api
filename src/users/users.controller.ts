@@ -1,4 +1,4 @@
-import { Body, Controller, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -21,5 +21,12 @@ export class UsersController {
     );
 
     return { artist: artistDoc };
+  }
+
+  @Get('/:artistId')
+  async getAnArtist(@Param('artistId') artistId: string) {
+    const artist = await this.usersService.getAnArtist(artistId);
+
+    return { artist };
   }
 }

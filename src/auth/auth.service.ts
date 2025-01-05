@@ -50,13 +50,15 @@ export class AuthService {
       throw new UnauthorizedException('Email not verified');
     }
 
-    const artist = await this.userModel.findOneAndUpdate(
-      {
+    let artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      artist = await this.userModel.create({
         userId: artistId,
-      },
-      { userId: artistId, email, businessName: name ?? 'New Business' },
-      { upsert: true, new: true },
-    );
+        email,
+        businessName: name ?? 'New Business',
+      });
+    }
 
     const access_token = await this.signToken(artist.userId, UserRole.ARTIST);
     return { access_token, artist };
