@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { version } from 'node:os';
 import { AppointmentDocument, FormTemplateDocument } from 'src/database/schema';
 
 @Injectable()
