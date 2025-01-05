@@ -10,11 +10,13 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+
   app.enableCors({
-    origin: '*',
+    origin: '*', // allowing requests from all origins
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+
   await app.listen(PORT);
   console.log(`App listening on port ${PORT}...`);
 }
