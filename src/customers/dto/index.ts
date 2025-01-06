@@ -5,7 +5,7 @@ import {
   Min,
   IsString,
   IsNotEmpty,
-  Max,
+  MaxLength,
 } from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
@@ -29,7 +29,7 @@ export class CreateCustomerNoteDto {
 
   @IsString()
   @IsNotEmpty()
-  @Max(500)
+  @MaxLength(500)
   note: string;
 }
 
@@ -40,6 +40,6 @@ export class EditCustomerNoteDto {
 
   @IsString()
   @IsNotEmpty()
-  @Max(500)
+  @MaxLength(500)
   note: string;
 }
