@@ -16,6 +16,7 @@ import {
   CreateCustomerNoteDto,
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
+  SearchMyCustomersQueryParamsDto,
 } from './dto';
 
 @Controller('api/customers')
@@ -30,6 +31,18 @@ export class CustomersController {
   ) {
     const { metadata, customers } =
       await this.customerService.getArtistCustomers(artist.userId, options);
+
+    return { metadata, customers };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Get('/my-customers/search')
+  async searchMyCustomers(
+    @GetUser() artist: UserDocument,
+    @Query() query: SearchMyCustomersQueryParamsDto,
+  ) {
+    const { metadata, customers } =
+      await this.customerService.searchMyCustomers(artist.userId, query);
 
     return { metadata, customers };
   }

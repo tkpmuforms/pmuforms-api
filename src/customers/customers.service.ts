@@ -11,6 +11,7 @@ import {
   CreateCustomerNoteDto,
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
+  SearchMyCustomersQueryParamsDto,
 } from './dto';
 import { randomUUID } from 'node:crypto';
 
@@ -188,5 +189,73 @@ export class CustomersService {
     await customer.save();
 
     return customer.notes;
+  }
+
+  async searchMyCustomers(
+    artistId: string,
+    params: SearchMyCustomersQueryParamsDto,
+  ) {
+    const { page = 1, limit = 10, name } = params;
+    const skip = (page - 1) * limit;
+
+    const pipeline = [
+      {
+        $match: {
+          artistId,
+        },
+      },
+      {
+        $lookup: {
+          from: 'customers',
+          localField: 'customerId',
+          foreignField: 'id',
+          as: 'customer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$customer',
+          includeArrayIndex: '0',
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $match: {
+          'customer.name': {
+            $regex: name,
+            $options: 'i',
+          },
+        },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: Number(limit),
+            },
+            {
+              $replaceRoot: {
+                newRoot: '$customer',
+              },
+            },
+          ],
+          aggregation: [
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = await this.relationshipModel.aggregate(pipeline);
+    const docCount = result[0].aggregation[0]?.count || 0;
+    const customers: CustomerDocument[] = result[0].data;
+    const metadata = paginationMetaGenerator(docCount, page, limit);
+
+    return { metadata, customers };
   }
 }
