@@ -6,6 +6,7 @@ import {
   IsString,
   IsNotEmpty,
   MaxLength,
+  IsDate,
 } from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
@@ -59,4 +60,39 @@ export class SearchMyCustomersQueryParamsDto {
   @IsNotEmpty()
   @IsString()
   name: string;
+}
+
+export class UpdatePersonalDetailsDto {
+  @IsNotEmpty()
+  @IsString()
+  firstName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  lastName: string;
+
+  @IsNotEmpty()
+  @Type(() => Date) // Ensures the value is transformed into a Date object
+  @IsDate()
+  dob: Date;
+
+  @IsNotEmpty()
+  @IsString()
+  homeAddress: string;
+
+  @IsNotEmpty()
+  @IsString()
+  primaryPhone: string;
+
+  @IsNotEmpty()
+  @IsString()
+  referralSource: string;
+
+  @IsNotEmpty()
+  @IsString()
+  emergencyContactName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  emergencyContactPhone: string;
 }

@@ -12,6 +12,7 @@ import {
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
   SearchMyCustomersQueryParamsDto,
+  UpdatePersonalDetailsDto,
 } from './dto';
 import { randomUUID } from 'node:crypto';
 
@@ -257,5 +258,27 @@ export class CustomersService {
     const metadata = paginationMetaGenerator(docCount, page, limit);
 
     return { metadata, customers };
+  }
+
+  async updatePersonalDetails(
+    customerId: string,
+    personalDetails: UpdatePersonalDetailsDto,
+  ) {
+    const customer = await this.customerModel.findOne({ id: customerId });
+
+    //update the details
+    const name = `${personalDetails.firstName} ${personalDetails.lastName}`;
+    customer.info.client_name = name;
+    customer.info.date_of_birth = personalDetails.dob.toISOString();
+    customer.info.home_address = personalDetails.homeAddress;
+    customer.info.cell_phone = personalDetails.primaryPhone;
+    customer.info.referred = personalDetails.referralSource;
+    customer.info.emergency_contact_name = personalDetails.emergencyContactName;
+    customer.info.emergency_contact_phone =
+      personalDetails.emergencyContactPhone;
+
+    await customer.save();
+
+    return customer;
   }
 }

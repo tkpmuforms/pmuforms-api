@@ -4,12 +4,13 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-import { UserDocument } from 'src/database/schema';
+import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { UserRole } from 'src/enums';
 import { GetUser, Roles } from 'src/auth/decorator';
 import {
@@ -17,6 +18,7 @@ import {
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
   SearchMyCustomersQueryParamsDto,
+  UpdatePersonalDetailsDto,
 } from './dto';
 
 @Controller('api/customers')
@@ -134,5 +136,18 @@ export class CustomersController {
     );
 
     return { message: 'Note deleted successfully', notes };
+  }
+
+  @Roles(UserRole.CUSTOMER)
+  @Patch('/personal-details')
+  async updatePersonalDetails(
+    @GetUser() authCustomer: CustomerDocument,
+    @Body() personalDetailsDto: UpdatePersonalDetailsDto,
+  ) {
+    const customer = await this.customerService.updatePersonalDetails(
+      authCustomer.id,
+      personalDetailsDto,
+    );
+    return { customer };
   }
 }
