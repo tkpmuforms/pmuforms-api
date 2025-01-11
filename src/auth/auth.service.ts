@@ -79,18 +79,16 @@ export class AuthService {
       throw new UnauthorizedException(`No artist found with id ${artistId}`);
     }
 
-    const customer = await this.customerModel.findOneAndUpdate(
-      {
-        id: customerId,
-      },
-      {
+    let customer = await this.customerModel.findOne({ id: customerId });
+
+    if (!customer) {
+      customer = await this.customerModel.create({
         id: customerId,
         email,
         name: name ?? 'New Customer',
         info: { client_name: name ?? 'New Customer' },
-      },
-      { upsert: true, new: true },
-    );
+      });
+    }
 
     //create relationship
     await this.relationshipModel.findOneAndUpdate(

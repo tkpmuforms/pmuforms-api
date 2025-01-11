@@ -11,6 +11,8 @@ import {
   CreateCustomerNoteDto,
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
+  SearchMyCustomersQueryParamsDto,
+  UpdatePersonalDetailsDto,
 } from './dto';
 import { randomUUID } from 'node:crypto';
 
@@ -188,5 +190,95 @@ export class CustomersService {
     await customer.save();
 
     return customer.notes;
+  }
+
+  async searchMyCustomers(
+    artistId: string,
+    params: SearchMyCustomersQueryParamsDto,
+  ) {
+    const { page = 1, limit = 10, name } = params;
+    const skip = (page - 1) * limit;
+
+    const pipeline = [
+      {
+        $match: {
+          artistId,
+        },
+      },
+      {
+        $lookup: {
+          from: 'customers',
+          localField: 'customerId',
+          foreignField: 'id',
+          as: 'customer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$customer',
+          includeArrayIndex: '0',
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $match: {
+          'customer.name': {
+            $regex: name,
+            $options: 'i',
+          },
+        },
+      },
+      {
+        $facet: {
+          data: [
+            {
+              $skip: skip,
+            },
+            {
+              $limit: Number(limit),
+            },
+            {
+              $replaceRoot: {
+                newRoot: '$customer',
+              },
+            },
+          ],
+          aggregation: [
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = await this.relationshipModel.aggregate(pipeline);
+    const docCount = result[0].aggregation[0]?.count || 0;
+    const customers: CustomerDocument[] = result[0].data;
+    const metadata = paginationMetaGenerator(docCount, page, limit);
+
+    return { metadata, customers };
+  }
+
+  async updatePersonalDetails(
+    customerId: string,
+    personalDetails: UpdatePersonalDetailsDto,
+  ) {
+    const customer = await this.customerModel.findOne({ id: customerId });
+
+    //update the details
+    const name = `${personalDetails.firstName} ${personalDetails.lastName}`;
+    customer.info.client_name = name;
+    customer.info.date_of_birth = personalDetails.dob.toISOString();
+    customer.info.home_address = personalDetails.homeAddress;
+    customer.info.cell_phone = personalDetails.primaryPhone;
+    customer.info.referred = personalDetails.referralSource;
+    customer.info.emergency_contact_name = personalDetails.emergencyContactName;
+    customer.info.emergency_contact_phone =
+      personalDetails.emergencyContactPhone;
+
+    await customer.save();
+
+    return customer;
   }
 }
