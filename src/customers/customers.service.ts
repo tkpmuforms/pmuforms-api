@@ -155,7 +155,7 @@ export class CustomersService {
 
     const noteIndex = customer.notes.findIndex((note) => note.id === noteId);
 
-    if (!noteIndex) {
+    if (noteIndex === -1) {
       throw new NotFoundException(`customer note with id ${noteId} not found`);
     }
 
