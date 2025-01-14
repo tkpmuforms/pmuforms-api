@@ -186,4 +186,43 @@ export class AppointmentsService {
 
     return appointment;
   }
+
+  async signAppointment(
+    artistId: string,
+    appointmentId: string,
+    signatureUrl: string,
+  ) {
+    const appointment = await this.appointmentModel.findOne({
+      id: appointmentId,
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `appointment with id ${appointmentId}  not found`,
+      );
+    }
+
+    if (artistId !== appointment.artistId) {
+      throw new ForbiddenException(
+        `You are not allowed to perfrom this acction`,
+      );
+    }
+
+    if (appointment.signed) {
+      throw new BadRequestException(`Appointment has already been signed`);
+    }
+
+    if (!appointment.allFormsCompleted) {
+      throw new BadRequestException(
+        `All forms for this appointment have not been flilled`,
+      );
+    }
+
+    appointment.signed = true;
+    appointment.signature_url = signatureUrl;
+
+    await appointment.save();
+
+    return appointment;
+  }
 }
