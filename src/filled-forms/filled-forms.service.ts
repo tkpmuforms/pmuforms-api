@@ -101,7 +101,10 @@ export class FilledFormsService {
       clientId: customerId,
       formTemplateId: formTemplate.id,
       data: formData,
+      title: formTemplate.title,
     });
+
+    //TODO- check if all required fields are completed
 
     // checks if customer has submitted all forms for this appointment
     this.eventEmitter.emit(
