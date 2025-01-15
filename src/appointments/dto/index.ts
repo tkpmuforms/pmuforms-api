@@ -64,3 +64,16 @@ export class SignAppointmentDto {
   @IsUrl()
   signatureUrl: string;
 }
+
+export class EditAppointmentDto {
+  @IsNotEmpty()
+  @Type(() => Date) // Ensures the value is transformed into a Date object
+  @IsDate()
+  appointmentDate: Date;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  services: number[];
+}

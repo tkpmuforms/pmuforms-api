@@ -13,7 +13,7 @@ import {
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
-import { PaginationParamsDto } from './dto';
+import { EditAppointmentDto, PaginationParamsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 
 @Injectable()
@@ -220,6 +220,62 @@ export class AppointmentsService {
 
     appointment.signed = true;
     appointment.signature_url = signatureUrl;
+
+    await appointment.save();
+
+    return appointment;
+  }
+
+  async editAppointment(
+    userId: string,
+    appointmentId: string,
+    dto: EditAppointmentDto,
+  ) {
+    const { appointmentDate, services } = dto;
+    const appointment = await this.appointmentModel.findOne({
+      id: appointmentId,
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `appointment with id ${appointmentId} not found `,
+      );
+    }
+
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
+
+    if (appointment.signed) {
+      throw new BadRequestException(`This appointment has already been signed`);
+    }
+
+    if (appointmentDate < new Date()) {
+      throw new BadRequestException(`Appointment date must be after today`);
+    }
+
+    const artist = await this.userModel.findOne({
+      userId: appointment.artistId,
+    });
+
+    const artistServices = artist.services ?? [];
+
+    const artistServiceIds = artistServices.map((service) => service.id);
+
+    const servicesNotOffered = services.filter(
+      (serviceId) => !artistServiceIds.includes(serviceId),
+    );
+
+    if (servicesNotOffered.length) {
+      throw new BadRequestException(
+        `artist does not offer these services- ${servicesNotOffered}`,
+      );
+    }
+
+    appointment.date = appointmentDate;
+    appointment.services = services;
 
     await appointment.save();
 
