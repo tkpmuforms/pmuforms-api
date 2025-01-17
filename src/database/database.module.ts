@@ -8,6 +8,7 @@ import {
   FormTemplateSchema,
   RelationshipSchema,
   ServiceSchema,
+  UrlSchema,
   UserSchema,
 } from './schema';
 import { AppConfigService } from 'src/config/config.service';
@@ -32,6 +33,7 @@ import { AppConfigModule } from 'src/config/config.module';
       { name: 'appointments', schema: AppointmentSchema },
       { name: 'form-templates', schema: FormTemplateSchema },
       { name: 'filled-forms', schema: FilledFormSchema },
+      { name: 'urls', schema: UrlSchema },
     ]),
   ],
   exports: [MongooseModule],

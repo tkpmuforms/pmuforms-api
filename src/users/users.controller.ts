@@ -29,4 +29,11 @@ export class UsersController {
 
     return { artist };
   }
+
+  @Get(':artistId/url')
+  async getArtistUrls(@Param('artistId') artistId: string) {
+    const urls = await this.usersService.getArtistShortUrl(artistId);
+
+    return { urls };
+  }
 }
