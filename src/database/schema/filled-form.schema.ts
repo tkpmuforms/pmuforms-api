@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
+import { FilledFormStatus } from 'src/enums';
 
 export type FilledFormDocument = mongoose.HydratedDocument<FilledForm>;
 
@@ -10,6 +11,16 @@ export class FilledForm {
 
   @Prop()
   appointmentId: string;
+
+  @Prop()
+  title: string;
+
+  @Prop({
+    type: String,
+    enum: Object.values(FilledFormStatus),
+    default: FilledFormStatus.INCOMPLETE,
+  })
+  status: FilledFormStatus;
 
   @Prop()
   clientId: string;

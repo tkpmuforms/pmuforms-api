@@ -6,14 +6,17 @@ import {
   Param,
   Get,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import {
   BookAnApppointmentAsArtistDto,
   BookAnApppointmentAsCustomerDto,
+  EditAppointmentDto,
   PaginationParamsDto,
+  SignAppointmentDto,
 } from './dto';
-import { GetUser, Roles } from 'src/auth/decorator';
+import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 
@@ -119,5 +122,41 @@ export class AppointmentsController {
     );
 
     return { message: 'appointment deleted', appointment };
+  }
+
+  @Post('/:appointmentId/sign')
+  async signAppointment(
+    @GetUser() artist: UserDocument,
+    @Param('appointmentId') appointmentId: string,
+    @Body() dto: SignAppointmentDto,
+  ) {
+    const appointment = await this.appointmentsService.signAppointment(
+      artist.userId,
+      appointmentId,
+      dto.signatureUrl,
+    );
+
+    return { appointment };
+  }
+
+  @Patch('/:appointmentId')
+  async editAppointment(
+    @GetUser() user: CustomerDocument | UserDocument,
+    @GetCurrentUserRole() userRole: UserRole,
+    @Param('appointmentId') appointmentId: string,
+    @Body() dto: EditAppointmentDto,
+  ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
+
+    const appointment = await this.appointmentsService.editAppointment(
+      userId,
+      appointmentId,
+      dto,
+    );
+
+    return { appointment };
   }
 }

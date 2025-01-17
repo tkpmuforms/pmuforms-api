@@ -1,7 +1,7 @@
 import { Body, Controller, Post, Param, Get } from '@nestjs/common';
 import { FilledFormsService } from './filled-forms.service';
 import { SubmitFormDto } from './dto';
-import { GetUser, Roles } from 'src/auth/decorator';
+import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 
@@ -25,17 +25,22 @@ export class FilledFormsController {
     return { filledForm };
   }
 
-  @Roles(UserRole.ARTIST)
+  @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
   @Get('/appointment/:appointmentId')
   async getFilledFoms(
-    @GetUser() artist: UserDocument,
+    @GetUser() user: CustomerDocument | UserDocument,
+    @GetCurrentUserRole() userRole: UserRole,
     @Param('appointmentId') appointmentId: string,
   ) {
-    const filledForm = await this.filledFormsService.getFilledForms(
-      artist.userId,
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
+    const filledForms = await this.filledFormsService.getFilledForms(
+      userId,
       appointmentId,
     );
 
-    return { filledForm };
+    return { filledForms };
   }
 }

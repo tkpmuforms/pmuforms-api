@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   Min,
 } from 'class-validator';
 
@@ -55,4 +56,24 @@ export class PaginationParamsDto {
   @IsInt({ message: 'Limit must be an integer.' })
   @Min(1, { message: 'Limit must be at least 1.' })
   limit?: number;
+}
+
+export class SignAppointmentDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsUrl()
+  signatureUrl: string;
+}
+
+export class EditAppointmentDto {
+  @IsNotEmpty()
+  @Type(() => Date) // Ensures the value is transformed into a Date object
+  @IsDate()
+  appointmentDate: Date;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  services: number[];
 }

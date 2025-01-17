@@ -6,7 +6,7 @@ export type UrlDocument = HydratedDocument<Url>;
 @Schema({ timestamps: true })
 export class Url {
   @Prop()
-  error: string;
+  url: string;
 
   @Prop()
   shortUrl: string;
