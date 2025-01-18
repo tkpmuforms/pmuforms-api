@@ -16,12 +16,15 @@ export class SectionData {
 
   @Prop()
   type: string;
+
+  @Prop()
+  required: boolean;
 }
 
 @Schema()
 export class Section {
   @Prop()
-  data: string;
+  data: SectionData[];
 
   @Prop()
   title: string;
