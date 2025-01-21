@@ -183,7 +183,20 @@ export class FilledFormsService {
     });
 
     if (forms.length === submittedForms.length) {
-      appointment.allFormsCompleted = true;
+      // check all form status of every submitted form
+      let completedStatus = true;
+
+      for (const submittedForm of submittedForms) {
+        completedStatus =
+          completedStatus &&
+          submittedForm.status === FilledFormStatus.COMPLETED;
+        if (!completedStatus) {
+          // early return
+          return;
+        }
+      }
+
+      appointment.allFormsCompleted = completedStatus;
       await appointment.save();
     }
   }
