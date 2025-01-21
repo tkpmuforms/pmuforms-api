@@ -6,6 +6,7 @@ import {
   MongooseHealthIndicator,
   DiskHealthIndicator,
 } from '@nestjs/terminus';
+import { Public } from 'src/auth/decorator';
 
 @Controller('health-check')
 export class HealthcheckController {
@@ -15,6 +16,8 @@ export class HealthcheckController {
     private readonly mongo: MongooseHealthIndicator,
     private readonly disk: DiskHealthIndicator,
   ) {}
+
+  @Public()
   @Get()
   @HealthCheck()
   index() {

@@ -18,6 +18,7 @@ import {
   FilledFormSubmittedEvent,
 } from 'src/filled-forms/filled-forms.event';
 import { FormsService } from 'src/forms/forms.service';
+import { FilledFormStatus } from 'src/enums';
 
 @Injectable()
 export class FilledFormsService {
@@ -60,6 +61,10 @@ export class FilledFormsService {
       );
     }
 
+    if (appointment.signed) {
+      throw new BadRequestException(`Appointment has already been signed`);
+    }
+
     const formTemplate = await this.formTemplateModel.findOne({
       id: formTemplateId,
     });
@@ -67,18 +72,6 @@ export class FilledFormsService {
     if (!formTemplate) {
       throw new NotFoundException(
         `form template with id ${formTemplateId} not found`,
-      );
-    }
-
-    const alreadyFilledForm = await this.filledFormModel.findOne({
-      appointmentId: appointment.id,
-      clientId: customerId,
-      formTemplateId: formTemplate.id,
-    });
-
-    if (alreadyFilledForm) {
-      throw new BadRequestException(
-        `You have already filled this form for this appointment`,
       );
     }
 
@@ -95,16 +88,51 @@ export class FilledFormsService {
       );
     }
 
-    // submit the form
-    const filledForm = await this.filledFormModel.create({
+    let filledForm: FilledFormDocument;
+
+    filledForm = await this.filledFormModel.findOne({
       appointmentId: appointment.id,
       clientId: customerId,
       formTemplateId: formTemplate.id,
-      data: formData,
-      title: formTemplate.title,
     });
 
-    //TODO- check if all required fields are completed
+    if (filledForm) {
+      // form has already been filled by the customer for this appointment
+      // update form data
+      filledForm.data = formData;
+    } else {
+      // submit the form
+      filledForm = await this.filledFormModel.create({
+        appointmentId: appointment.id,
+        clientId: customerId,
+        formTemplateId: formTemplate.id,
+        data: formData,
+        title: formTemplate.title,
+      });
+    }
+
+    // check if all required fields are completed
+    const requiredFields = new Set<string>();
+
+    for (const section of formTemplate.sections) {
+      for (const q of section.data) {
+        if (q.required) {
+          requiredFields.add(q.id);
+        }
+      }
+    }
+
+    for (const key of Object.keys(formData)) {
+      if (key && formData[key] !== null) {
+        requiredFields.delete(key);
+      }
+    }
+
+    filledForm.status =
+      requiredFields.size === 0
+        ? FilledFormStatus.COMPLETED
+        : FilledFormStatus.INCOMPLETE;
+    await filledForm.save();
 
     // checks if customer has submitted all forms for this appointment
     this.eventEmitter.emit(
@@ -155,7 +183,20 @@ export class FilledFormsService {
     });
 
     if (forms.length === submittedForms.length) {
-      appointment.allFormsCompleted = true;
+      // check all form status of every submitted form
+      let completedStatus = true;
+
+      for (const submittedForm of submittedForms) {
+        completedStatus =
+          completedStatus &&
+          submittedForm.status === FilledFormStatus.COMPLETED;
+        if (!completedStatus) {
+          // early return
+          return;
+        }
+      }
+
+      appointment.allFormsCompleted = completedStatus;
       await appointment.save();
     }
   }

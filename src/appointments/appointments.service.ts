@@ -15,6 +15,7 @@ import {
 } from 'src/database/schema';
 import { EditAppointmentDto, PaginationParamsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class AppointmentsService {
@@ -115,8 +116,8 @@ export class AppointmentsService {
       );
     }
 
-    if (appointmentDate < new Date()) {
-      throw new BadRequestException(`Appointment date must be after today`);
+    if (appointmentDate < DateTime.now().minus({ day: 1 }).toJSDate()) {
+      throw new BadRequestException(`Appointment can not be before today`);
     }
 
     const appointment = this.appointmentModel.create({
