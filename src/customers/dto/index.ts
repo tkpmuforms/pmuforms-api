@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   MaxLength,
   IsDate,
+  IsUrl,
 } from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
@@ -95,4 +96,8 @@ export class UpdatePersonalDetailsDto {
   @IsNotEmpty()
   @IsString()
   emergencyContactPhone: string;
+
+  @IsOptional()
+  @IsUrl()
+  avatarUrl: string;
 }

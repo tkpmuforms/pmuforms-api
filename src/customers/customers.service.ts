@@ -276,6 +276,7 @@ export class CustomersService {
     customer.info.emergency_contact_name = personalDetails.emergencyContactName;
     customer.info.emergency_contact_phone =
       personalDetails.emergencyContactPhone;
+    customer.info.avatar_url = personalDetails.avatarUrl;
 
     await customer.save();
 

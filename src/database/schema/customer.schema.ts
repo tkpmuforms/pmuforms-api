@@ -46,6 +46,9 @@ export class Info {
 
   @Prop()
   zip_code: string;
+
+  @Prop()
+  avatar_url: string;
 }
 
 const InfoSchema = SchemaFactory.createForClass(Info);
