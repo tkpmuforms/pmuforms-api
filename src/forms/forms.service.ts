@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { AppointmentDocument, FormTemplateDocument } from 'src/database/schema';
+import {
+  AppointmentDocument,
+  FormTemplateDocument,
+  Section,
+} from 'src/database/schema';
+import { NewFormVersionDto } from './dto';
 
 @Injectable()
 export class FormsService {
@@ -92,59 +97,69 @@ export class FormsService {
   async createNewFormFromExistingTemplate(
     artistId: string,
     formTemplateId: string,
+    dto: NewFormVersionDto,
   ) {
-    const originalForm = await this.formTemplateModel.findOne({
+    const formToMod = await this.formTemplateModel.findOne({
       id: formTemplateId,
     });
 
-    if (!originalForm) {
+    if (!formToMod) {
       throw new NotFoundException(
         `form template with id ${formTemplateId} not found`,
       );
     }
 
-    if (originalForm.artistId && artistId !== originalForm.artistId) {
-      throw new ForbiddenException(
-        `You are not allowed to modify this form. You can only modify forms you created or forms from the base template`,
-      );
-    }
-
-    // get latest form-template-> this becomes the parent template - GetLatestFormTemplate(artistId, rootFormTemplateId)
-    const parentTemplate = await this.formTemplateModel
+    // formToMod may not be the latest version
+    let latestFormToModTemplateVersion = await this.formTemplateModel
       .findOne({
-        rootFormTemplateId: originalForm.id,
+        rootFormTemplateId: formToMod.rootFormTemplateId ?? formToMod.id,
         artistId: artistId,
       })
       .sort({ versionNumber: -1 });
 
-    // if parentTemplate exists, insert new Template
+    if (!latestFormToModTemplateVersion) {
+      latestFormToModTemplateVersion = formToMod;
+    }
 
-    let templateDocBody: Partial<FormTemplateDocument>;
+    const versionNumber = latestFormToModTemplateVersion.versionNumber + 1;
 
-    if (parentTemplate) {
-      const versionNumber = parentTemplate.versionNumber + 1;
-      const id = `${parentTemplate.rootFormTemplateId}-${artistId}-${versionNumber}`;
-      templateDocBody = {
+    let newTemplateDocBody: Partial<FormTemplateDocument> = {
+      versionNumber,
+      title: latestFormToModTemplateVersion.title,
+      sections: dto.sections as Section[],
+      artistId,
+    };
+
+    if (latestFormToModTemplateVersion.versionNumber === 0) {
+      // this is a root template form
+      const id = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
+      newTemplateDocBody = {
         id,
-        rootFormTemplateId: parentTemplate.rootFormTemplateId,
-        parentFormTemplateId: parentTemplate.id,
-        artistId,
-        versionNumber,
+        parentFormTemplateId: latestFormToModTemplateVersion.id,
+        rootFormTemplateId: latestFormToModTemplateVersion.id,
+        ...newTemplateDocBody,
       };
     } else {
-      const versionNumber = 1;
-      const id = `${parentTemplate.rootFormTemplateId}-${artistId}-${versionNumber}`;
-      templateDocBody = {
+      if (
+        latestFormToModTemplateVersion.artistId &&
+        artistId !== latestFormToModTemplateVersion.artistId
+      ) {
+        throw new ForbiddenException(
+          `You are not allowed to modify this form. You can only modify forms you created or forms from the base template`,
+        );
+      }
+      const id = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
+      newTemplateDocBody = {
         id,
-        rootFormTemplateId: originalForm.id,
-        parentFormTemplateId: originalForm.id,
-        artistId,
-        versionNumber,
+        rootFormTemplateId: latestFormToModTemplateVersion.rootFormTemplateId,
+        parentFormTemplateId: latestFormToModTemplateVersion.id,
+        ...newTemplateDocBody,
       };
     }
 
-    const newTemplate = await this.formTemplateModel.create(templateDocBody);
+    const newFormTemplate =
+      await this.formTemplateModel.create(newTemplateDocBody);
 
-    return newTemplate;
+    return newFormTemplate;
   }
 }
