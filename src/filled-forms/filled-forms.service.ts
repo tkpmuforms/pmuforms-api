@@ -174,6 +174,35 @@ export class FilledFormsService {
     return { metadata, filledForms };
   }
 
+  async getFilledFormForAppointmentByFormTemplateId(
+    userId: string,
+    appointmentId: string,
+    formTemplateId: string,
+  ) {
+    const appointment = await this.appointmentModel.findOne({
+      id: appointmentId,
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `appointment with id ${appointmentId} not found`,
+      );
+    }
+
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
+
+    const filledForm = await this.filledFormModel.find({
+      appointmentId,
+      formTemplateId,
+    });
+
+    return filledForm;
+  }
+
   /*
     This function checks if all forms are filled and updates the appointment doc if true
   */
