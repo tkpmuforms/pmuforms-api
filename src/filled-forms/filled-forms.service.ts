@@ -19,6 +19,8 @@ import {
 } from 'src/filled-forms/filled-forms.event';
 import { FormsService } from 'src/forms/forms.service';
 import { FilledFormStatus } from 'src/enums';
+import { randomUUID } from 'node:crypto';
+import { paginationMetaGenerator } from 'src/utils';
 
 @Injectable()
 export class FilledFormsService {
@@ -75,7 +77,7 @@ export class FilledFormsService {
       );
     }
 
-    const formsForAppointment =
+    const { forms: formsForAppointment } =
       await this.formsService.getFormTemplatesForAppointment(appointment.id);
 
     const formIsForAppointment = formsForAppointment.find(
@@ -103,6 +105,7 @@ export class FilledFormsService {
     } else {
       // submit the form
       filledForm = await this.filledFormModel.create({
+        id: randomUUID(),
         appointmentId: appointment.id,
         clientId: customerId,
         formTemplateId: formTemplate.id,
@@ -143,7 +146,7 @@ export class FilledFormsService {
     return filledForm;
   }
 
-  async getFilledForms(userId: string, appointmentId: string) {
+  async getFilledFormsForAppointment(userId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
@@ -162,7 +165,42 @@ export class FilledFormsService {
 
     const filledForms = await this.filledFormModel.find({ appointmentId });
 
-    return filledForms;
+    const metadata = paginationMetaGenerator(
+      filledForms.length,
+      1,
+      filledForms.length,
+    );
+
+    return { metadata, filledForms };
+  }
+
+  async getFilledFormForAppointmentByFormTemplateId(
+    userId: string,
+    appointmentId: string,
+    formTemplateId: string,
+  ) {
+    const appointment = await this.appointmentModel.findOne({
+      id: appointmentId,
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `appointment with id ${appointmentId} not found`,
+      );
+    }
+
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
+
+    const filledForm = await this.filledFormModel.find({
+      appointmentId,
+      formTemplateId,
+    });
+
+    return filledForm;
   }
 
   /*
@@ -173,7 +211,7 @@ export class FilledFormsService {
     const { appointment } = event.payload;
 
     // check all forms for this appointment
-    const forms = await this.formsService.getFormTemplatesForAppointment(
+    const { forms } = await this.formsService.getFormTemplatesForAppointment(
       appointment.id,
     );
 
@@ -182,7 +220,7 @@ export class FilledFormsService {
       appointmentId: appointment.id,
     });
 
-    if (forms.length === submittedForms.length) {
+    if (submittedForms.length >= forms.length) {
       // check all form status of every submitted form
       let completedStatus = true;
 

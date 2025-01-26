@@ -27,7 +27,7 @@ export class FilledFormsController {
 
   @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
   @Get('/appointment/:appointmentId')
-  async getFilledFoms(
+  async getFilledFomsForAppointment(
     @GetUser() user: CustomerDocument | UserDocument,
     @GetCurrentUserRole() userRole: UserRole,
     @Param('appointmentId') appointmentId: string,
@@ -36,11 +36,34 @@ export class FilledFormsController {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
-    const filledForms = await this.filledFormsService.getFilledForms(
-      userId,
-      appointmentId,
-    );
+    const { metadata, filledForms } =
+      await this.filledFormsService.getFilledFormsForAppointment(
+        userId,
+        appointmentId,
+      );
 
-    return { filledForms };
+    return { metadata, filledForms };
+  }
+
+  @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
+  @Get('/appointment/:appointmentId/form/:formTemplateId')
+  async getFilledFomForAppointmentByFormTemplateId(
+    @GetUser() user: CustomerDocument | UserDocument,
+    @GetCurrentUserRole() userRole: UserRole,
+    @Param('appointmentId') appointmentId: string,
+    @Param('formTemplateId') formTemplateId: string,
+  ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
+    const filledForm =
+      await this.filledFormsService.getFilledFormForAppointmentByFormTemplateId(
+        userId,
+        appointmentId,
+        formTemplateId,
+      );
+
+    return { filledForm };
   }
 }
