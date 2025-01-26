@@ -27,7 +27,7 @@ export class FilledFormsController {
 
   @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
   @Get('/appointment/:appointmentId')
-  async getFilledFoms(
+  async getFilledFomsForAppointment(
     @GetUser() user: CustomerDocument | UserDocument,
     @GetCurrentUserRole() userRole: UserRole,
     @Param('appointmentId') appointmentId: string,
@@ -36,10 +36,11 @@ export class FilledFormsController {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
-    const filledForms = await this.filledFormsService.getFilledForms(
-      userId,
-      appointmentId,
-    );
+    const filledForms =
+      await this.filledFormsService.getFilledFormsForAppointment(
+        userId,
+        appointmentId,
+      );
 
     return { filledForms };
   }

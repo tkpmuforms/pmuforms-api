@@ -19,6 +19,7 @@ import {
 } from 'src/filled-forms/filled-forms.event';
 import { FormsService } from 'src/forms/forms.service';
 import { FilledFormStatus } from 'src/enums';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class FilledFormsService {
@@ -103,6 +104,7 @@ export class FilledFormsService {
     } else {
       // submit the form
       filledForm = await this.filledFormModel.create({
+        id: randomUUID(),
         appointmentId: appointment.id,
         clientId: customerId,
         formTemplateId: formTemplate.id,
@@ -143,7 +145,7 @@ export class FilledFormsService {
     return filledForm;
   }
 
-  async getFilledForms(userId: string, appointmentId: string) {
+  async getFilledFormsForAppointment(userId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
