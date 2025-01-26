@@ -20,6 +20,7 @@ import {
 import { FormsService } from 'src/forms/forms.service';
 import { FilledFormStatus } from 'src/enums';
 import { randomUUID } from 'node:crypto';
+import { paginationMetaGenerator } from 'src/utils';
 
 @Injectable()
 export class FilledFormsService {
@@ -164,7 +165,13 @@ export class FilledFormsService {
 
     const filledForms = await this.filledFormModel.find({ appointmentId });
 
-    return filledForms;
+    const metadata = paginationMetaGenerator(
+      filledForms.length,
+      1,
+      filledForms.length,
+    );
+
+    return { metadata, filledForms };
   }
 
   /*
