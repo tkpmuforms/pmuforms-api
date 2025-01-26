@@ -39,4 +39,11 @@ export class FormsController {
     );
     return form;
   }
+
+  @Get('/:templateId')
+  async getFormTemplateById(@Param('templateId') templateId: string) {
+    const form = await this.formsService.getFormTemplateById(templateId);
+
+    return { form };
+  }
 }
