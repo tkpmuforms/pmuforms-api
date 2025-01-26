@@ -77,7 +77,7 @@ export class FilledFormsService {
       );
     }
 
-    const formsForAppointment =
+    const { forms: formsForAppointment } =
       await this.formsService.getFormTemplatesForAppointment(appointment.id);
 
     const formIsForAppointment = formsForAppointment.find(
@@ -182,7 +182,7 @@ export class FilledFormsService {
     const { appointment } = event.payload;
 
     // check all forms for this appointment
-    const forms = await this.formsService.getFormTemplatesForAppointment(
+    const { forms } = await this.formsService.getFormTemplatesForAppointment(
       appointment.id,
     );
 
@@ -191,7 +191,7 @@ export class FilledFormsService {
       appointmentId: appointment.id,
     });
 
-    if (forms.length === submittedForms.length) {
+    if (submittedForms.length >= forms.length) {
       // check all form status of every submitted form
       let completedStatus = true;
 

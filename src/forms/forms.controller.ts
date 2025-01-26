@@ -20,10 +20,10 @@ export class FormsController {
   async getFormsForAnAppointment(
     @Param('appointmentId') appointmentId: string,
   ) {
-    const forms =
+    const { forms, metadata } =
       await this.formsService.getFormTemplatesForAppointment(appointmentId);
 
-    return { forms };
+    return { metadata, forms };
   }
 
   @Roles(UserRole.ARTIST)

@@ -11,6 +11,7 @@ import {
   Section,
 } from 'src/database/schema';
 import { NewFormVersionDto } from './dto';
+import { paginationMetaGenerator } from 'src/utils';
 
 @Injectable()
 export class FormsService {
@@ -76,7 +77,9 @@ export class FormsService {
       i++;
     }
 
-    return forms;
+    const metadata = paginationMetaGenerator(forms.length, 1, forms.length);
+
+    return { metadata, forms };
   }
 
   private async getLatestFormTemplateByArtist(
@@ -93,7 +96,6 @@ export class FormsService {
     return form;
   }
 
-  // work in progress
   async createNewFormFromExistingTemplate(
     artistId: string,
     formTemplateId: string,
