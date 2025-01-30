@@ -80,5 +80,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "resolutions": {
+    "path-to-regexp": "^0.1.12"
   }
 }
