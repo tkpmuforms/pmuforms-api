@@ -35,6 +35,9 @@ export class Appointment {
 
   @Prop({ default: false })
   deleted: boolean;
+
+  @Prop()
+  formsToFillCount: number;
 }
 
 export const AppointmentSchema = SchemaFactory.createForClass(Appointment);

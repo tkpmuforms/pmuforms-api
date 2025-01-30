@@ -9,13 +9,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, RootFilterQuery } from 'mongoose';
 import {
   AppointmentDocument,
-  CustomerDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
 import { EditAppointmentDto, PaginationParamsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { DateTime } from 'luxon';
+import { FormsService } from 'src/forms/forms.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -26,8 +26,7 @@ export class AppointmentsService {
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
-    @InjectModel('customers')
-    private customerModel: Model<CustomerDocument>,
+    private readonly formsService: FormsService,
   ) {}
 
   async getAllCustomerAppointments(
@@ -120,13 +119,20 @@ export class AppointmentsService {
       throw new BadRequestException(`Appointment can not be before today`);
     }
 
-    const appointment = this.appointmentModel.create({
+    const appointment = await this.appointmentModel.create({
       date: appointmentDate,
       artistId,
       customerId,
       services,
       id: randomUUID(),
     });
+
+    const { forms } = await this.formsService.getFormTemplatesForAppointment(
+      appointment.id,
+    );
+
+    appointment.formsToFillCount = forms.length;
+    await appointment.save();
 
     return appointment;
   }
