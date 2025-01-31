@@ -19,6 +19,7 @@ import {
 import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
+import { GetCustomerAuthContext } from 'src/auth/decorator/artist-context.decorator';
 
 @Controller('api/appointments')
 export class AppointmentsController {
@@ -28,11 +29,13 @@ export class AppointmentsController {
   @Get('/customer')
   async getAllCustomerAppointments(
     @GetUser() customer: CustomerDocument,
+    @GetCustomerAuthContext() artistId: string,
     @Query() options: PaginationParamsDto,
   ) {
     const { metadata, appointments } =
       await this.appointmentsService.getAllCustomerAppointments(
         customer.id,
+        artistId,
         options,
       );
 

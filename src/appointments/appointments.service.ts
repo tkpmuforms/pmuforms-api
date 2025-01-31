@@ -31,6 +31,7 @@ export class AppointmentsService {
 
   async getAllCustomerAppointments(
     customerId: string,
+    artistId: string,
     options: PaginationParamsDto,
   ) {
     const { page = 1, limit = 10 } = options;
@@ -38,6 +39,7 @@ export class AppointmentsService {
 
     const queryObject: RootFilterQuery<AppointmentDocument> = {
       customerId,
+      artistId,
       deleted: false,
     };
 

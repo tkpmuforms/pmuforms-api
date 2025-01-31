@@ -27,8 +27,15 @@ export class AuthService {
     private firebaseService: FirebaseService,
   ) {}
 
-  private async signToken(userId: string, role: UserRole) {
-    const payload = { role, sub: userId };
+  private async signToken(userId: string, role: UserRole, artistId?: string) {
+    const payload: { role: UserRole; sub: string; artistId?: string } = {
+      role,
+      sub: userId,
+    };
+
+    if (artistId) {
+      payload.artistId = artistId;
+    }
 
     // 90 days for artists and 24hrs for customers
     const duration = role === UserRole.ARTIST ? '90d' : '1d';
@@ -97,7 +104,11 @@ export class AuthService {
       { upsert: true },
     );
 
-    const access_token = await this.signToken(customer.id, UserRole.CUSTOMER);
+    const access_token = await this.signToken(
+      customer.id,
+      UserRole.CUSTOMER,
+      artistId,
+    );
     return { access_token, customer };
   }
 
