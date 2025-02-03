@@ -49,7 +49,7 @@ export class AppointmentsService {
 
     const appointments = await this.appointmentModel
       .find(queryObject)
-      .populate('filledForms')
+      .populate('filledForms', 'id status')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -73,7 +73,7 @@ export class AppointmentsService {
     const metadata = paginationMetaGenerator(docCount, page, limit);
     const appointments = await this.appointmentModel
       .find(queryObject)
-      .populate('filledForms')
+      .populate('filledForms', 'id status')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -195,7 +195,7 @@ export class AppointmentsService {
       .findOne({
         id: appointmentId,
       })
-      .populate('filledForms');
+      .populate('filledForms', 'id status');
 
     return appointment;
   }
