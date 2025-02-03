@@ -15,6 +15,7 @@ import { CustomersModule } from './customers/customers.module';
 import { UsersModule } from './users/users.module';
 import { FormsModule } from './forms/forms.module';
 import { FilledFormsModule } from './filled-forms/filled-forms.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { FilledFormsModule } from './filled-forms/filled-forms.module';
     UsersModule,
     FormsModule,
     FilledFormsModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [
