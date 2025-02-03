@@ -9,13 +9,13 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, RootFilterQuery } from 'mongoose';
 import {
   AppointmentDocument,
-  CustomerDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
 import { EditAppointmentDto, PaginationParamsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { DateTime } from 'luxon';
+import { FormsService } from 'src/forms/forms.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -26,12 +26,12 @@ export class AppointmentsService {
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
-    @InjectModel('customers')
-    private customerModel: Model<CustomerDocument>,
+    private readonly formsService: FormsService,
   ) {}
 
-  async getAllCustomerAppointments(
+  async getAllCustomerAppointmentsInAuthContext(
     customerId: string,
+    artistId: string,
     options: PaginationParamsDto,
   ) {
     const { page = 1, limit = 10 } = options;
@@ -39,6 +39,7 @@ export class AppointmentsService {
 
     const queryObject: RootFilterQuery<AppointmentDocument> = {
       customerId,
+      artistId,
       deleted: false,
     };
 
@@ -48,6 +49,7 @@ export class AppointmentsService {
 
     const appointments = await this.appointmentModel
       .find(queryObject)
+      .populate('filledForms', 'id status')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -71,6 +73,7 @@ export class AppointmentsService {
     const metadata = paginationMetaGenerator(docCount, page, limit);
     const appointments = await this.appointmentModel
       .find(queryObject)
+      .populate('filledForms', 'id status')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -120,13 +123,20 @@ export class AppointmentsService {
       throw new BadRequestException(`Appointment can not be before today`);
     }
 
-    const appointment = this.appointmentModel.create({
+    const appointment = await this.appointmentModel.create({
       date: appointmentDate,
       artistId,
       customerId,
       services,
       id: randomUUID(),
     });
+
+    const { forms } = await this.formsService.getFormTemplatesForAppointment(
+      appointment.id,
+    );
+
+    appointment.formsToFillCount = forms.length;
+    await appointment.save();
 
     return appointment;
   }
@@ -181,9 +191,11 @@ export class AppointmentsService {
   }
 
   async getAppointment(appointmentId: string) {
-    const appointment = await this.appointmentModel.findOne({
-      id: appointmentId,
-    });
+    const appointment = await this.appointmentModel
+      .findOne({
+        id: appointmentId,
+      })
+      .populate('filledForms', 'id status');
 
     return appointment;
   }

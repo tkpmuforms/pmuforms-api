@@ -35,6 +35,16 @@ export class Appointment {
 
   @Prop({ default: false })
   deleted: boolean;
+
+  @Prop()
+  formsToFillCount: number;
 }
 
 export const AppointmentSchema = SchemaFactory.createForClass(Appointment);
+
+AppointmentSchema.virtual('filledForms', {
+  ref: 'filled-forms',
+  localField: 'id',
+  foreignField: 'appointmentId',
+  justOne: false,
+});
