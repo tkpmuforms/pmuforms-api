@@ -29,7 +29,7 @@ export class AppointmentsService {
     private readonly formsService: FormsService,
   ) {}
 
-  async getAllCustomerAppointments(
+  async getAllCustomerAppointmentsInAuthContext(
     customerId: string,
     artistId: string,
     options: PaginationParamsDto,
@@ -49,6 +49,7 @@ export class AppointmentsService {
 
     const appointments = await this.appointmentModel
       .find(queryObject)
+      .populate('filledForms')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -72,6 +73,7 @@ export class AppointmentsService {
     const metadata = paginationMetaGenerator(docCount, page, limit);
     const appointments = await this.appointmentModel
       .find(queryObject)
+      .populate('filledForms')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -189,9 +191,11 @@ export class AppointmentsService {
   }
 
   async getAppointment(appointmentId: string) {
-    const appointment = await this.appointmentModel.findOne({
-      id: appointmentId,
-    });
+    const appointment = await this.appointmentModel
+      .findOne({
+        id: appointmentId,
+      })
+      .populate('filledForms');
 
     return appointment;
   }

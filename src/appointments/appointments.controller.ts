@@ -27,13 +27,13 @@ export class AppointmentsController {
 
   @Roles(UserRole.CUSTOMER)
   @Get('/customer')
-  async getAllCustomerAppointments(
+  async getAllCustomerAppointmentsInAuthContext(
     @GetUser() customer: CustomerDocument,
     @GetCustomerAuthContext() artistId: string,
     @Query() options: PaginationParamsDto,
   ) {
     const { metadata, appointments } =
-      await this.appointmentsService.getAllCustomerAppointments(
+      await this.appointmentsService.getAllCustomerAppointmentsInAuthContext(
         customer.id,
         artistId,
         options,

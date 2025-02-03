@@ -41,3 +41,10 @@ export class Appointment {
 }
 
 export const AppointmentSchema = SchemaFactory.createForClass(Appointment);
+
+AppointmentSchema.virtual('filledForms', {
+  ref: 'filled-forms',
+  localField: 'id',
+  foreignField: 'appointmentId',
+  justOne: false,
+});
