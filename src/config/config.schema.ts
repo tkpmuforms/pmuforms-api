@@ -25,6 +25,8 @@ export const configSchema = z.object({
   SMTP_PORT: z.string().transform((val) => parseInt(val)),
   SMTP_USERNAME: z.string(),
   SMTP_PASSWORD: z.string(),
+
+  CONTACT_US_EMAIL: z.string(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

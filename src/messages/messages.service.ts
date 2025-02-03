@@ -59,6 +59,7 @@ export class MessagesService {
 
   async createNewMessage(dto: CreateNewMessageDto) {
     const { email, firstName, subject, message } = dto;
+
     const msg = await this.messageModel.create({
       email,
       firstName,
@@ -66,11 +67,18 @@ export class MessagesService {
       message,
     });
 
+    const emailBody = `
+      <p> Reply to: ${email}</p>
+      <p> First Name: ${firstName}</p>
+      <p> Subject: ${subject}</p>
+      <p> Message: ${message}</p>
+    `;
+
     this.sendEmail({
       from: `PMUForms <${this.config.get('SMTP_USERNAME')}>`,
-      to: 'contact@pmuforms.com',
+      to: this.config.get('CONTACT_US_EMAIL'),
       subject,
-      message,
+      message: emailBody,
     });
     return msg;
   }
