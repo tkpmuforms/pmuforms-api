@@ -195,7 +195,7 @@ export class FilledFormsService {
       );
     }
 
-    const filledForm = await this.filledFormModel.find({
+    const filledForm = await this.filledFormModel.findOne({
       appointmentId,
       formTemplateId,
     });
