@@ -31,6 +31,9 @@ export class Section {
 
   @Prop()
   isClientInformation?: boolean;
+
+  @Prop()
+  skip?: boolean;
 }
 
 const SectionSchema = SchemaFactory.createForClass(Section);
