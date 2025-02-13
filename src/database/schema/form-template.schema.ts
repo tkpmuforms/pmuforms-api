@@ -28,6 +28,9 @@ export class Section {
 
   @Prop()
   title: string;
+
+  @Prop()
+  isClientInformation?: boolean;
 }
 
 const SectionSchema = SchemaFactory.createForClass(Section);

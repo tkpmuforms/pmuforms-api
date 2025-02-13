@@ -28,6 +28,10 @@ class SectionDto {
   @IsNotEmpty()
   @IsString()
   title: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isClientInformation?: boolean;
 }
 
 class SectionDataDto {
