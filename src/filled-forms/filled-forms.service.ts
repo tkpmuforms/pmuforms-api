@@ -163,7 +163,9 @@ export class FilledFormsService {
       );
     }
 
-    const filledForms = await this.filledFormModel.find({ appointmentId });
+    const filledForms = await this.filledFormModel
+      .find({ appointmentId })
+      .populate('formTemplate');
 
     const metadata = paginationMetaGenerator(
       filledForms.length,
@@ -195,10 +197,12 @@ export class FilledFormsService {
       );
     }
 
-    const filledForm = await this.filledFormModel.findOne({
-      appointmentId,
-      formTemplateId,
-    });
+    const filledForm = await this.filledFormModel
+      .findOne({
+        appointmentId,
+        formTemplateId,
+      })
+      .populate('formTemplate');
 
     return filledForm;
   }
