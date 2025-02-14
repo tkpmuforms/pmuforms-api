@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsBoolean,
   ValidateNested,
+  IsInt,
 } from 'class-validator';
 
 export class NewFormVersionDto {
@@ -17,6 +18,13 @@ export class NewFormVersionDto {
   @ValidateNested({ each: true })
   @Type(() => SectionDto)
   sections: SectionDto[];
+}
+
+export class UpdateFormServicesDTO {
+  @IsArray()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  services: number[];
 }
 
 class SectionDto {

@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
 import { NewFormVersionDto } from './dto';
+import { UpdateServicesDto } from 'src/services/dto';
 
 @Controller('api/forms')
 export class FormsController {
@@ -43,6 +44,21 @@ export class FormsController {
   @Get('/:templateId')
   async getFormTemplateById(@Param('templateId') templateId: string) {
     const form = await this.formsService.getFormTemplateById(templateId);
+
+    return { form };
+  }
+
+  @Put('/:templateId/update-services')
+  async updateServicesForFormTemplate(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Body() dto: UpdateServicesDto,
+  ) {
+    const form = await this.formsService.updateServicesForFormTemplate(
+      templateId,
+      artist.userId,
+      dto.services,
+    );
 
     return { form };
   }

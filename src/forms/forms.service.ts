@@ -136,10 +136,11 @@ export class FormsService {
       // this is a root template form
       const id = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
       newTemplateDocBody = {
+        ...latestFormToModTemplateVersion,
+        ...newTemplateDocBody,
         id,
         parentFormTemplateId: latestFormToModTemplateVersion.id,
         rootFormTemplateId: latestFormToModTemplateVersion.id,
-        ...newTemplateDocBody,
       };
     } else {
       if (
@@ -152,10 +153,11 @@ export class FormsService {
       }
       const id = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
       newTemplateDocBody = {
+        ...latestFormToModTemplateVersion,
+        ...newTemplateDocBody,
         id,
         rootFormTemplateId: latestFormToModTemplateVersion.rootFormTemplateId,
         parentFormTemplateId: latestFormToModTemplateVersion.id,
-        ...newTemplateDocBody,
       };
     }
 
@@ -163,5 +165,29 @@ export class FormsService {
       await this.formTemplateModel.create(newTemplateDocBody);
 
     return newFormTemplate;
+  }
+
+  async updateServicesForFormTemplate(
+    formTemplateId: string,
+    artistId: string,
+    services: number[],
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+      artistId,
+      versionNumber: 0,
+    });
+
+    if (!formTemplate) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    formTemplate.services = services;
+
+    await formTemplate.save();
+
+    return formTemplate;
   }
 }
