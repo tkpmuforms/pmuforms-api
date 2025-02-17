@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,6 +13,7 @@ import {
 } from 'src/database/schema';
 import { NewFormVersionDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
+import { createHash } from 'node:crypto';
 
 @Injectable()
 export class FormsService {
@@ -100,6 +102,35 @@ export class FormsService {
     return form;
   }
 
+  private hashData(data: any[], isMongoData?: boolean) {
+    const hash = createHash('sha256');
+
+    let cleanedData: any[];
+    if (isMongoData) {
+      cleanedData = data.map((obj) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { _id, ...rest } = obj.toObject();
+        return rest;
+      });
+    } else {
+      cleanedData = data;
+    }
+
+    const sortedData = cleanedData.map((d) =>
+      Object.keys(d)
+        .sort() // Sort keys alphabetically
+        .reduce((acc, key) => {
+          acc[key] = d[key]; // Rebuild object with sorted keys
+          return acc;
+        }, {}),
+    );
+
+    console.log({ sortedData });
+
+    hash.update(JSON.stringify(sortedData));
+    return hash.digest('hex');
+  }
+
   async createNewFormFromExistingTemplate(
     artistId: string,
     formTemplateId: string,
@@ -125,6 +156,16 @@ export class FormsService {
 
     if (!latestFormToModTemplateVersion) {
       latestFormToModTemplateVersion = formToMod;
+    }
+
+    const previousSectionData = this.hashData(
+      latestFormToModTemplateVersion.sections,
+      true,
+    );
+    const newSectionData = this.hashData(dto.sections);
+
+    if (previousSectionData === newSectionData) {
+      throw new BadRequestException('no changes detected');
     }
 
     const versionNumber = latestFormToModTemplateVersion.versionNumber + 1;
