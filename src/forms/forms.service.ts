@@ -38,6 +38,10 @@ export class FormsService {
       throw new NotFoundException(`form with id ${formTemplateId} not found`);
     }
 
+    // remove skipped sections from response
+    const sectionsNotSkipped = form.sections.filter((section) => !section.skip);
+    form.sections = sectionsNotSkipped;
+
     return form;
   }
 
