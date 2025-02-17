@@ -175,7 +175,6 @@ export class FormsService {
     const formTemplate = await this.formTemplateModel.findOne({
       id: formTemplateId,
       artistId,
-      versionNumber: 0,
     });
 
     if (!formTemplate) {
