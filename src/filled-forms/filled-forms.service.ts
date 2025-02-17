@@ -104,7 +104,7 @@ export class FilledFormsService {
       filledForm.data = formData;
     } else {
       // submit the form
-      filledForm = await this.filledFormModel.create({
+      filledForm = new this.filledFormModel({
         id: randomUUID(),
         appointmentId: appointment.id,
         clientId: customerId,
@@ -118,6 +118,9 @@ export class FilledFormsService {
     const requiredFields = new Set<string>();
 
     for (const section of formTemplate.sections) {
+      if (section.skip) {
+        continue;
+      }
       for (const q of section.data) {
         if (q.required) {
           requiredFields.add(q.id);
@@ -163,7 +166,9 @@ export class FilledFormsService {
       );
     }
 
-    const filledForms = await this.filledFormModel.find({ appointmentId });
+    const filledForms = await this.filledFormModel
+      .find({ appointmentId })
+      .populate('formTemplate');
 
     const metadata = paginationMetaGenerator(
       filledForms.length,
@@ -195,10 +200,12 @@ export class FilledFormsService {
       );
     }
 
-    const filledForm = await this.filledFormModel.find({
-      appointmentId,
-      formTemplateId,
-    });
+    const filledForm = await this.filledFormModel
+      .findOne({
+        appointmentId,
+        formTemplateId,
+      })
+      .populate('formTemplate');
 
     return filledForm;
   }

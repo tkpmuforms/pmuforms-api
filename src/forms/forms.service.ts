@@ -38,6 +38,10 @@ export class FormsService {
       throw new NotFoundException(`form with id ${formTemplateId} not found`);
     }
 
+    // remove skipped sections from response
+    const sectionsNotSkipped = form.sections.filter((section) => !section.skip);
+    form.sections = sectionsNotSkipped;
+
     return form;
   }
 
@@ -136,10 +140,11 @@ export class FormsService {
       // this is a root template form
       const id = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
       newTemplateDocBody = {
+        ...latestFormToModTemplateVersion,
+        ...newTemplateDocBody,
         id,
         parentFormTemplateId: latestFormToModTemplateVersion.id,
         rootFormTemplateId: latestFormToModTemplateVersion.id,
-        ...newTemplateDocBody,
       };
     } else {
       if (
@@ -152,10 +157,11 @@ export class FormsService {
       }
       const id = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
       newTemplateDocBody = {
+        ...latestFormToModTemplateVersion,
+        ...newTemplateDocBody,
         id,
         rootFormTemplateId: latestFormToModTemplateVersion.rootFormTemplateId,
         parentFormTemplateId: latestFormToModTemplateVersion.id,
-        ...newTemplateDocBody,
       };
     }
 
@@ -163,5 +169,55 @@ export class FormsService {
       await this.formTemplateModel.create(newTemplateDocBody);
 
     return newFormTemplate;
+  }
+
+  async updateServicesForFormTemplate(
+    formTemplateId: string,
+    artistId: string,
+    services: number[],
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+      artistId,
+    });
+
+    if (!formTemplate) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    formTemplate.services = services;
+
+    await formTemplate.save();
+
+    return formTemplate;
+  }
+
+  async deleteSectionFromFormTemplate(
+    formTemplateId: string,
+    artistId: string,
+    sectionNumber: number,
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+      artistId,
+    });
+
+    if (!formTemplate) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (sectionNumber < 0 || sectionNumber >= formTemplate.sections.length) {
+      throw new NotFoundException(`section number ${sectionNumber} is invalid`);
+    }
+
+    formTemplate.sections[sectionNumber].skip = true;
+
+    await formTemplate.save();
+
+    return formTemplate;
   }
 }
