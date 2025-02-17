@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -58,6 +67,21 @@ export class FormsController {
       templateId,
       artist.userId,
       dto.services,
+    );
+
+    return { form };
+  }
+
+  @Delete('/:templateId/section/:sectionNumber')
+  async deleteSectionFromFormTemplate(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionNumber', ParseIntPipe) sectionNumber: number,
+  ) {
+    const form = await this.formsService.deleteSectionFromFormTemplate(
+      templateId,
+      artist.userId,
+      sectionNumber,
     );
 
     return { form };

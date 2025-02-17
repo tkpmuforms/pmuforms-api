@@ -189,4 +189,31 @@ export class FormsService {
 
     return formTemplate;
   }
+
+  async deleteSectionFromFormTemplate(
+    formTemplateId: string,
+    artistId: string,
+    sectionNumber: number,
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+      artistId,
+    });
+
+    if (!formTemplate) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (sectionNumber < 0 || sectionNumber >= formTemplate.sections.length) {
+      throw new NotFoundException(`section number ${sectionNumber} is invalid`);
+    }
+
+    formTemplate.sections[sectionNumber].skip = true;
+
+    await formTemplate.save();
+
+    return formTemplate;
+  }
 }
