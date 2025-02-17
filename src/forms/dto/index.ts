@@ -36,6 +36,14 @@ class SectionDto {
   @IsNotEmpty()
   @IsString()
   title: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isClientInformation?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  skip?: boolean;
 }
 
 class SectionDataDto {
