@@ -228,19 +228,11 @@ export class FormsService {
       );
     }
 
-<<<<<<< Updated upstream
     // removing duplicates from services array
     const servicesSet = new Set(services);
     const formServices = Array.from(servicesSet);
 
     formTemplate.services = formServices;
-=======
-    // removing duplicates
-    const servicesSet = new Set(services);
-    const servicesForForm = Array.from(servicesSet);
-
-    formTemplate.services = servicesForForm;
->>>>>>> Stashed changes
 
     await formTemplate.save();
 
