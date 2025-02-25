@@ -48,3 +48,10 @@ AppointmentSchema.virtual('filledForms', {
   foreignField: 'appointmentId',
   justOne: false,
 });
+
+AppointmentSchema.virtual('serviceDetails', {
+  ref: 'services',
+  localField: 'services',
+  foreignField: 'id',
+  justOne: false,
+});

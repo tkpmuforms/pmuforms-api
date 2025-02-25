@@ -228,7 +228,11 @@ export class FormsService {
       );
     }
 
-    formTemplate.services = services;
+    // removing duplicates from services array
+    const servicesSet = new Set(services);
+    const formServices = Array.from(servicesSet);
+
+    formTemplate.services = formServices;
 
     await formTemplate.save();
 

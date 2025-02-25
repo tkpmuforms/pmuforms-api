@@ -78,3 +78,10 @@ export class FormTemplate {
 }
 
 export const FormTemplateSchema = SchemaFactory.createForClass(FormTemplate);
+
+FormTemplateSchema.virtual('serviceDetails', {
+  ref: 'services',
+  localField: 'services',
+  foreignField: 'id',
+  justOne: false,
+});
