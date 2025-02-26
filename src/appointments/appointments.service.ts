@@ -50,6 +50,7 @@ export class AppointmentsService {
     const appointments = await this.appointmentModel
       .find(queryObject)
       .populate('filledForms', 'id status')
+      .populate('serviceDetails', 'id service')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -74,6 +75,7 @@ export class AppointmentsService {
     const appointments = await this.appointmentModel
       .find(queryObject)
       .populate('filledForms', 'id status')
+      .populate('serviceDetails', 'id service')
       .sort({ appointmentDate: 'descending' })
       .skip(skip)
       .limit(limit);
@@ -123,11 +125,15 @@ export class AppointmentsService {
       throw new BadRequestException(`Appointment can not be before today`);
     }
 
+    // removing duplicates from services array
+    const servicesSet = new Set(services);
+    const servicesForAppointment = Array.from(servicesSet);
+
     const appointment = await this.appointmentModel.create({
       date: appointmentDate,
       artistId,
       customerId,
-      services,
+      services: servicesForAppointment,
       id: randomUUID(),
     });
 
@@ -159,6 +165,7 @@ export class AppointmentsService {
     const metadata = paginationMetaGenerator(docCount, page, limit);
     const appointments = await this.appointmentModel
       .find(queryObject)
+      .populate('serviceDetails', 'id service')
       .sort({ date: 'desc' })
       .skip(skip)
       .limit(limit);
@@ -195,7 +202,8 @@ export class AppointmentsService {
       .findOne({
         id: appointmentId,
       })
-      .populate('filledForms', 'id status');
+      .populate('filledForms', 'id status')
+      .populate('serviceDetails', 'id service');
 
     return appointment;
   }
