@@ -125,8 +125,6 @@ export class FormsService {
         }, {}),
     );
 
-    console.log({ sortedData });
-
     hash.update(JSON.stringify(sortedData));
     return hash.digest('hex');
   }

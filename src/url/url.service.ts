@@ -60,7 +60,7 @@ export class UrlService {
       );
       return res.data.link;
     } catch (error: any) {
-      console.log({ error });
+      console.error({ error });
       throw new InternalServerErrorException('Unable to generate short url');
     }
   }
