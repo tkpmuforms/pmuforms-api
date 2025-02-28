@@ -1,18 +1,9 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  Put,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
 import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
-import { NewFormVersionDto } from './dto';
+import { NewFormVersionDto, UpdateSectionsDto } from './dto';
 import { UpdateServicesDto } from 'src/services/dto';
 
 @Controller('api/forms')
@@ -72,16 +63,16 @@ export class FormsController {
     return { form };
   }
 
-  @Delete('/:templateId/section/:sectionNumber')
-  async deleteSectionFromFormTemplate(
+  @Patch('/:templateId/sections')
+  async updateFormTemplateSections(
     @GetUser() artist: UserDocument,
     @Param('templateId') templateId: string,
-    @Param('sectionNumber', ParseIntPipe) sectionNumber: number,
+    @Body() dto: UpdateSectionsDto,
   ) {
-    const form = await this.formsService.deleteSectionFromFormTemplate(
+    const form = await this.formsService.updateFormTemplateSections(
       templateId,
       artist.userId,
-      sectionNumber,
+      dto,
     );
 
     return { form };

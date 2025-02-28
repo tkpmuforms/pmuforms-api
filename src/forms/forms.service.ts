@@ -6,12 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-  AppointmentDocument,
-  FormTemplateDocument,
-  Section,
-} from 'src/database/schema';
-import { NewFormVersionDto } from './dto';
+import { AppointmentDocument, FormTemplateDocument } from 'src/database/schema';
+import { NewFormVersionDto, UpdateSectionsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { createHash } from 'node:crypto';
 
@@ -171,7 +167,7 @@ export class FormsService {
     let newTemplateDocBody: Partial<FormTemplateDocument> = {
       versionNumber,
       title: latestFormToModTemplateVersion.title,
-      sections: dto.sections as Section[],
+      sections: dto.sections,
       artistId,
     };
 
@@ -237,11 +233,15 @@ export class FormsService {
     return formTemplate;
   }
 
-  async deleteSectionFromFormTemplate(
+  async updateFormTemplateSections(
     formTemplateId: string,
     artistId: string,
-    sectionNumber: number,
+    dto: UpdateSectionsDto,
   ) {
+    /*
+     * Updates section details without creating a new version
+     * Basically used to add skip flag to the section that the artist wants to remove
+     */
     const formTemplate = await this.formTemplateModel.findOne({
       id: formTemplateId,
       artistId,
@@ -253,11 +253,7 @@ export class FormsService {
       );
     }
 
-    if (sectionNumber < 0 || sectionNumber >= formTemplate.sections.length) {
-      throw new NotFoundException(`section number ${sectionNumber} is invalid`);
-    }
-
-    formTemplate.sections[sectionNumber].skip = true;
+    formTemplate.sections = dto.sections;
 
     await formTemplate.save();
 

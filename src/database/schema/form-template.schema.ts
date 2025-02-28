@@ -18,7 +18,7 @@ export class SectionData {
   type: string;
 
   @Prop()
-  required: boolean;
+  required?: boolean;
 }
 
 @Schema()
