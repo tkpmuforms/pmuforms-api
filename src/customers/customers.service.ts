@@ -61,7 +61,6 @@ export class CustomersService {
       );
     }
 
-    console.log({ customer: relationship.customer });
     return relationship.customer;
   }
 
