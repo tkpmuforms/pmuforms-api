@@ -51,7 +51,7 @@ export class FormsService {
     }
 
     // root form templates
-    const forms = await this.formTemplateModel.find({
+    let forms = await this.formTemplateModel.find({
       rootFormTemplateId: null,
       parentFormTemplateId: null,
       versionNumber: 0,
@@ -67,14 +67,23 @@ export class FormsService {
         appointment.artistId,
         f.id,
       );
-
-      if (latestFormVersion) {
+      
+      if (latestFormVersion && latestFormVersion?.services?.length) {
         forms[i] = latestFormVersion;
+      } else {
+        if (!!latestFormVersion) {
+          //form version exist but has no service, do not replace with root form
+          forms[i] = null;
+        }
+
+        //keep the root form since no version exists
       }
 
       i++;
     }
 
+    forms = forms.filter(f=> f !== null);
+    
     const metadata = paginationMetaGenerator(forms.length, 1, forms.length);
 
     return { metadata, forms };
