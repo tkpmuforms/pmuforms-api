@@ -62,6 +62,7 @@ export class FormsService {
       services: {
         $in: appointment.services,
       },
+      "sections.skip": { $eq: null }
     });
 
     // replace root forms with the most recent version if it exists
@@ -92,6 +93,7 @@ export class FormsService {
       .findOne({
         artistId,
         rootFormTemplateId,
+        "sections.skip": { $eq: null }
       })
       .sort({ versionNumber: -1 });
 
