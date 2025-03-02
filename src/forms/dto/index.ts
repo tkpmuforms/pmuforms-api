@@ -47,10 +47,6 @@ class SectionDto {
   @IsOptional()
   @IsBoolean()
   isClientInformation?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  skip?: boolean;
 }
 
 class SectionDataDto {

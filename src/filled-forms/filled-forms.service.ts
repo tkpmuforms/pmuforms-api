@@ -118,9 +118,6 @@ export class FilledFormsService {
     const requiredFields = new Set<string>();
 
     for (const section of formTemplate.sections) {
-      if (section.skip) {
-        continue;
-      }
       for (const q of section.data) {
         if (q.required) {
           requiredFields.add(q.id);

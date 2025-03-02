@@ -36,10 +36,6 @@ export class FormsService {
       throw new NotFoundException(`form with id ${formTemplateId} not found`);
     }
 
-    // remove skipped sections from response
-    const sectionsNotSkipped = form.sections.filter((section) => !section.skip);
-    form.sections = sectionsNotSkipped;
-
     return form;
   }
 
@@ -62,7 +58,6 @@ export class FormsService {
       services: {
         $in: appointment.services,
       },
-      "sections.skip": { $eq: null }
     });
 
     // replace root forms with the most recent version if it exists
@@ -93,7 +88,6 @@ export class FormsService {
       .findOne({
         artistId,
         rootFormTemplateId,
-        "sections.skip": { $eq: null }
       })
       .sort({ versionNumber: -1 });
 
@@ -242,7 +236,6 @@ export class FormsService {
   ) {
     /*
      * Updates section details without creating a new version
-     * Basically used to add skip flag to the section that the artist wants to remove
      */
     const formTemplate = await this.formTemplateModel.findOne({
       id: formTemplateId,
