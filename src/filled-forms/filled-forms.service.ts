@@ -131,10 +131,14 @@ export class FilledFormsService {
       }
     }
 
-    filledForm.status =
-      requiredFields.size === 0
-        ? FilledFormStatus.COMPLETED
-        : FilledFormStatus.INCOMPLETE;
+    if (Object.keys(formData).length === 0) {
+      filledForm.status = FilledFormStatus.SKIPPED;
+    } else if (requiredFields.size === 0) {
+      filledForm.status = FilledFormStatus.COMPLETED;
+    } else {
+      filledForm.status = FilledFormStatus.INCOMPLETE;
+    }
+
     await filledForm.save();
 
     // checks if customer has submitted all forms for this appointment
