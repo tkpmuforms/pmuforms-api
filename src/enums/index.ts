@@ -6,5 +6,4 @@ export enum UserRole {
 export enum FilledFormStatus {
   COMPLETED = 'completed',
   INCOMPLETE = 'incomplete',
-  SKIPPED = 'skipped',
 }

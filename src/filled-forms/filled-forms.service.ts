@@ -132,9 +132,11 @@ export class FilledFormsService {
       }
     }
 
-    if (Object.keys(formData).length === 0) {
-      filledForm.status = FilledFormStatus.SKIPPED;
-    } else if (requiredFields.size === 0) {
+    // user did not fill any details
+    filledForm.isSkipped = Object.keys(formData).length === 0;
+
+    if (requiredFields.size === 0) {
+      // all required fields filled
       filledForm.status = FilledFormStatus.COMPLETED;
     } else {
       filledForm.status = FilledFormStatus.INCOMPLETE;
@@ -239,7 +241,7 @@ export class FilledFormsService {
           submittedForm.status === FilledFormStatus.COMPLETED;
         if (!completedStatus) {
           // early return
-          return;
+          break;
         }
       }
 
