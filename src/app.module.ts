@@ -16,9 +16,19 @@ import { UsersModule } from './users/users.module';
 import { FormsModule } from './forms/forms.module';
 import { FilledFormsModule } from './filled-forms/filled-forms.module';
 import { MessagesModule } from './messages/messages.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'short',
+          ttl: 60_000,
+          limit: 2,
+        },
+      ],
+    }),
     EventEmitterModule.forRoot(),
     AuthModule,
     HealthcheckModule,
