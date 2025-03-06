@@ -43,6 +43,7 @@ export class FilledFormsService {
   ) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
+      customerId
     });
 
     if (!appointment) {
@@ -157,11 +158,11 @@ export class FilledFormsService {
       );
     }
 
-    if (appointment.artistId !== userId && appointment.customerId !== userId) {
-      throw new ForbiddenException(
-        `You are not allowed to perform this action`,
-      );
-    }
+    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
+    //   throw new ForbiddenException(
+    //     `You are not allowed to perform this action`,
+    //   );
+    // }
 
     const filledForms = await this.filledFormModel
       .find({ appointmentId })
