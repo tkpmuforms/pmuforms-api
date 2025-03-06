@@ -31,6 +31,9 @@ export class FilledForm {
 
   @Prop()
   formTemplateId: string;
+
+  @Prop({ default: false })
+  isSkipped: boolean;
 }
 
 export const FilledFormSchema = SchemaFactory.createForClass(FilledForm);
