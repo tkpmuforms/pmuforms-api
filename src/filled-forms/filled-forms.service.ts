@@ -43,7 +43,7 @@ export class FilledFormsService {
   ) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
-      customerId
+      customerId,
     });
 
     if (!appointment) {

@@ -221,10 +221,11 @@ export class CustomersService {
       },
       {
         $match: {
-          'customer.name': {
-            $regex: name,
-            $options: 'i',
-          },
+          $or: [
+            { 'customer.name': { $regex: name, $options: 'i' } },
+            { 'customer.email': { $regex: name, $options: 'i' } },
+            { 'customer.info.cell_phone': { $regex: name, $options: 'i' } },
+          ],
         },
       },
       {
@@ -267,6 +268,7 @@ export class CustomersService {
 
     //update the details
     const name = `${personalDetails.firstName} ${personalDetails.lastName}`;
+    customer.name = name;
     customer.info.client_name = name;
     customer.info.date_of_birth = personalDetails.dob.toISOString();
     customer.info.home_address = personalDetails.homeAddress;
