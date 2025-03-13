@@ -17,6 +17,14 @@ export class FormsController {
     return { forms };
   }
 
+  @Roles(UserRole.ARTIST)
+  @Get('/my-forms')
+  async getArtistFormTemplate(@GetUser() artist: UserDocument) {
+    const forms = await this.formsService.getArtistFormTemplates(artist);
+
+    return { forms };
+  }
+
   @Get('/appointment/:appointmentId')
   async getFormsForAnAppointment(
     @Param('appointmentId') appointmentId: string,
