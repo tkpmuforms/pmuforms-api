@@ -44,7 +44,7 @@ export class FormsService {
 
     for (const i in forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
-        artist.id,
+        artist.userId,
         forms[i].id,
       );
       if (latestFormVersion) {
