@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { AppointmentDocument, FormTemplateDocument } from 'src/database/schema';
+import {
+  AppointmentDocument,
+  FormTemplateDocument,
+  UserDocument,
+} from 'src/database/schema';
 import { NewFormVersionDto, UpdateSectionsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { createHash } from 'node:crypto';
@@ -25,6 +29,28 @@ export class FormsService {
       rootFormTemplateId: null,
       parentFormTemplateId: null,
     });
+
+    return forms;
+  }
+
+  async getArtistFormTemplates(artist: UserDocument) {
+    const artistServices: number[] = artist.services.map((s) => s.id);
+    const forms = await this.formTemplateModel.find({
+      services: { $in: artistServices },
+      rootFormTemplateId: null,
+      parentFormTemplateId: null,
+      versionNumber: 0,
+    });
+
+    for (const i in forms) {
+      const latestFormVersion = await this.getLatestFormTemplateByArtist(
+        artist.id,
+        forms[i].id,
+      );
+      if (latestFormVersion) {
+        forms[i] = latestFormVersion;
+      }
+    }
 
     return forms;
   }
@@ -67,7 +93,7 @@ export class FormsService {
         appointment.artistId,
         f.id,
       );
-      
+
       if (latestFormVersion && latestFormVersion?.services?.length) {
         forms[i] = latestFormVersion;
       } else {
@@ -82,8 +108,8 @@ export class FormsService {
       i++;
     }
 
-    forms = forms.filter(f=> f !== null);
-    
+    forms = forms.filter((f) => f !== null);
+
     const metadata = paginationMetaGenerator(forms.length, 1, forms.length);
 
     return { metadata, forms };
