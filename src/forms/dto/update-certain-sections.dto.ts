@@ -6,34 +6,15 @@ import {
   IsOptional,
   IsBoolean,
   ValidateNested,
-  IsInt,
 } from 'class-validator';
 
 export * from './update-certain-sections.dto';
 
-export class NewFormVersionDto {
-  @IsString()
-  @IsNotEmpty()
-  formTemplateId: string;
-
+export class UpdateCertainSectionsDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SectionDto)
   sections: SectionDto[];
-}
-
-export class UpdateSectionsDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SectionDto)
-  sections: SectionDto[];
-}
-
-export class UpdateFormServicesDTO {
-  @IsArray()
-  @Type(() => Number)
-  @IsInt({ each: true })
-  services: number[];
 }
 
 class SectionDto {
@@ -49,6 +30,10 @@ class SectionDto {
   @IsOptional()
   @IsBoolean()
   isClientInformation?: boolean;
+
+  @IsNotEmpty()
+  @IsString()
+  _id: string;
 }
 
 class SectionDataDto {
