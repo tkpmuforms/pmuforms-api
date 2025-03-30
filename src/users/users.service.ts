@@ -43,4 +43,17 @@ export class UsersService {
 
     return { shortUrl, longUrl };
   }
+
+  async updateFcmToken(artistId: string, fcmToken: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    artist.fcmToken = fcmToken;
+    await artist.save();
+
+    return artist;
+  }
 }

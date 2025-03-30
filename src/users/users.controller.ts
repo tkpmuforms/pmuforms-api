@@ -3,7 +3,7 @@ import { UsersService } from './users.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
-import { UpdateBusinessNameDto } from './dto';
+import { UpdateBusinessNameDto, UpdateFcmTokenDto } from './dto';
 
 @Controller('api/artists')
 export class UsersController {
@@ -18,6 +18,20 @@ export class UsersController {
     const artistDoc = await this.usersService.updateBusinessName(
       artist.userId,
       dto.businessName,
+    );
+
+    return { artist: artistDoc };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Patch('/update-fcm-token')
+  async updateFcmtoken(
+    @GetUser() artist: UserDocument,
+    @Body() dto: UpdateFcmTokenDto,
+  ) {
+    const artistDoc = await this.usersService.updateFcmToken(
+      artist.userId,
+      dto.fcmToken,
     );
 
     return { artist: artistDoc };
