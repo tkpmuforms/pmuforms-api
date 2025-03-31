@@ -11,3 +11,9 @@ export class UpdateFcmTokenDto {
   @IsNotEmpty()
   fcmToken: string;
 }
+
+export class UpdateSignatureUrlDto {
+  @IsString()
+  @IsNotEmpty()
+  signature_url: string;
+}

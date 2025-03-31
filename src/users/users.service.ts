@@ -56,4 +56,17 @@ export class UsersService {
 
     return artist;
   }
+
+  async updateArtistSignatureUrl(artistId: string, url: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    artist.signature_url = url;
+    await artist.save();
+
+    return artist;
+  }
 }

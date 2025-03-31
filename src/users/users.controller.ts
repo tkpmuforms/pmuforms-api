@@ -3,7 +3,11 @@ import { UsersService } from './users.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
-import { UpdateBusinessNameDto, UpdateFcmTokenDto } from './dto';
+import {
+  UpdateSignatureUrlDto,
+  UpdateBusinessNameDto,
+  UpdateFcmTokenDto,
+} from './dto';
 
 @Controller('api/artists')
 export class UsersController {
@@ -49,5 +53,19 @@ export class UsersController {
     const urls = await this.usersService.getArtistShortUrl(artistId);
 
     return { urls };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Patch('/update-artist-signature')
+  async updateArtistSignature(
+    @GetUser() artist: UserDocument,
+    @Body() dto: UpdateSignatureUrlDto,
+  ) {
+    const artistDoc = await this.usersService.updateArtistSignatureUrl(
+      artist.userId,
+      dto.signature_url,
+    );
+
+    return { artist: artistDoc };
   }
 }

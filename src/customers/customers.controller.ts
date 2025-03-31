@@ -20,6 +20,7 @@ import {
   SearchMyCustomersQueryParamsDto,
   UpdatePersonalDetailsDto,
 } from './dto';
+import { UpdateSignatureUrlDto } from '../users/dto';
 
 @Controller('api/customers')
 export class CustomersController {
@@ -149,5 +150,21 @@ export class CustomersController {
       personalDetailsDto,
     );
     return { customer };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Patch(':customerId/update-signature')
+  async updateCustomerSignature(
+    @GetUser() artist: UserDocument,
+    @Param('customerId') customerId: string,
+    @Body() dto: UpdateSignatureUrlDto,
+  ) {
+    const customerDoc = await this.customerService.updateCustomerSignatureUrl(
+      artist.userId,
+      customerId,
+      dto.signature_url,
+    );
+
+    return { customer: customerDoc };
   }
 }

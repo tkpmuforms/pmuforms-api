@@ -48,6 +48,9 @@ export class User {
 
   @Prop()
   fcmToken: string;
+
+  @Prop()
+  signature_url: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
