@@ -56,7 +56,7 @@ export class UsersController {
   }
 
   @Roles(UserRole.ARTIST)
-  @Patch('/update-artist-signature')
+  @Patch('/update-signature')
   async updateArtistSignature(
     @GetUser() artist: UserDocument,
     @Body() dto: UpdateSignatureUrlDto,
