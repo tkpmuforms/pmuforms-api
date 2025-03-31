@@ -153,7 +153,7 @@ export class CustomersController {
   }
 
   @Roles(UserRole.ARTIST)
-  @Patch(':customerId/update-signature')
+  @Patch('/my-customers/:customerId/update-signature')
   async updateCustomerSignature(
     @GetUser() artist: UserDocument,
     @Param('customerId') customerId: string,
