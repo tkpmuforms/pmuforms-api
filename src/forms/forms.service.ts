@@ -328,8 +328,9 @@ export class FormsService {
       if (sectionId in sectionsToChangeMap) {
         formTemplate.sections[i] = sectionsToChangeMap[sectionId];
       }
-
-      sectionsForNewFormTemplate.push(formTemplate.sections[i]);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = formTemplate.sections[i];
+      sectionsForNewFormTemplate.push(rest);
     }
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(
