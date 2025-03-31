@@ -92,6 +92,9 @@ export class Customer {
 
   @Prop({ type: [NoteSchema], default: [] })
   notes: Note[];
+
+  @Prop()
+  signature_url: string;
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);

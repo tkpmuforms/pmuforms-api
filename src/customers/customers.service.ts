@@ -139,6 +139,10 @@ export class CustomersService {
     noteId: string,
     dto: EditCustomerNoteDto,
   ) {
+    if (!dto?.imageUrl && !dto?.note) {
+      throw new ForbiddenException(`there is no note content to update`);
+    }
+
     const relationship = await this.relationshipModel.findOne({
       artistId,
       customerId,
@@ -158,8 +162,13 @@ export class CustomersService {
       throw new NotFoundException(`customer note with id ${noteId} not found`);
     }
 
-    customer.notes[noteIndex].imageUrl = dto.imageUrl;
-    customer.notes[noteIndex].note = dto.note;
+    if (dto?.imageUrl) {
+      customer.notes[noteIndex].imageUrl = dto.imageUrl;
+    }
+
+    if (dto?.note) {
+      customer.notes[noteIndex].note = dto.note;
+    }
 
     await customer.save();
 
@@ -279,6 +288,34 @@ export class CustomersService {
       personalDetails.emergencyContactPhone;
     customer.info.avatar_url = personalDetails.avatarUrl;
 
+    await customer.save();
+
+    return customer;
+  }
+
+  async updateCustomerSignatureUrl(
+    artistId: string,
+    customerId: string,
+    url: string,
+  ) {
+    const relationship = await this.relationshipModel.findOne({
+      artistId,
+      customerId,
+    });
+
+    if (!relationship) {
+      throw new ForbiddenException(
+        'there is no relationship between customer and artist',
+      );
+    }
+
+    const customer = await this.customerModel.findOne({ id: customerId });
+
+    if (!customer) {
+      throw new NotFoundException(`customer with id ${customerId} not found`);
+    }
+
+    customer.signature_url = url;
     await customer.save();
 
     return customer;
