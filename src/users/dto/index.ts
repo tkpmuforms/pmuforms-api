@@ -5,3 +5,9 @@ export class UpdateBusinessNameDto {
   @IsNotEmpty()
   businessName: string;
 }
+
+export class UpdateFcmTokenDto {
+  @IsString()
+  @IsNotEmpty()
+  fcmToken: string;
+}

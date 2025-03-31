@@ -11,7 +11,11 @@ import {
   FormTemplateDocument,
   UserDocument,
 } from 'src/database/schema';
-import { NewFormVersionDto, UpdateSectionsDto } from './dto';
+import {
+  NewFormVersionDto,
+  UpdateCertainSectionsDto,
+  UpdateSectionsDto,
+} from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { createHash } from 'node:crypto';
 
@@ -288,5 +292,53 @@ export class FormsService {
     await formTemplate.save();
 
     return formTemplate;
+  }
+
+  async updateCertainFormTemplateSections(
+    formTemplateId: string,
+    artistId: string,
+    dto: UpdateCertainSectionsDto,
+  ) {
+    /*
+     * Updates certain section details and creates a new version
+     */
+
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+      artistId,
+    });
+
+    if (!formTemplate) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    // transform dto.sections into an object with sectionId as key
+    const sectionsToChangeMap = dto.sections.reduce(
+      (acc: { [key: string]: any }, section) => {
+        acc[section._id] = section;
+        return acc;
+      },
+      {},
+    );
+    const sectionsForNewFormTemplate = [];
+    for (let i = 0; i < formTemplate.sections.length; i++) {
+      const sectionId = formTemplate.sections[i]._id.toString();
+      if (sectionId in sectionsToChangeMap) {
+        formTemplate.sections[i] = sectionsToChangeMap[sectionId];
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = formTemplate.sections[i];
+      sectionsForNewFormTemplate.push(rest);
+    }
+
+    const newFormTemplate = await this.createNewFormFromExistingTemplate(
+      artistId,
+      formTemplateId,
+      { sections: sectionsForNewFormTemplate, formTemplateId },
+    );
+
+    return newFormTemplate;
   }
 }

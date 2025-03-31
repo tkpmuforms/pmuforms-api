@@ -45,6 +45,9 @@ export class User {
 
   @Prop({ type: [ServiceSchema] })
   services: Service[];
+
+  @Prop()
+  fcmToken: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

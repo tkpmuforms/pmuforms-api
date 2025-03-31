@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, RootFilterQuery } from 'mongoose';
 import {
   AppointmentDocument,
+  FilledFormDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
@@ -16,6 +17,7 @@ import { EditAppointmentDto, PaginationParamsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { DateTime } from 'luxon';
 import { FormsService } from 'src/forms/forms.service';
+import { FilledFormStatus } from 'src/enums';
 
 @Injectable()
 export class AppointmentsService {
@@ -27,6 +29,8 @@ export class AppointmentsService {
     @InjectModel('users')
     private userModel: Model<UserDocument>,
     private readonly formsService: FormsService,
+    @InjectModel('filled-forms')
+    private filledFormModel: Model<FilledFormDocument>,
   ) {}
 
   async getAllCustomerAppointmentsInAuthContext(
@@ -208,11 +212,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  async signAppointment(
-    artistId: string,
-    appointmentId: string,
-    signatureUrl: string,
-  ) {
+  async signAppointment(artistId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
@@ -239,8 +239,16 @@ export class AppointmentsService {
       );
     }
 
+    const filledFormsForAppointment = await this.filledFormModel.find({
+      appointmentId,
+    });
+
+    for (const i in filledFormsForAppointment) {
+      filledFormsForAppointment[i].status = FilledFormStatus.SIGNED;
+      await filledFormsForAppointment[i].save();
+    }
+
     appointment.signed = true;
-    appointment.signature_url = signatureUrl;
 
     await appointment.save();
 
