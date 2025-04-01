@@ -305,13 +305,16 @@ export class FormsService {
 
     const formTemplate = await this.formTemplateModel.findOne({
       id: formTemplateId,
-      artistId,
     });
 
     if (!formTemplate) {
       throw new NotFoundException(
         `formTemplate with id ${formTemplateId} not found`,
       );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to modify this form. `);
     }
 
     // transform dto.sections into an object with sectionId as key
