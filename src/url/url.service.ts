@@ -70,15 +70,16 @@ export class UrlService {
       const doc = await this.urlModel.findOne({ url: longUrl.trim() });
 
       if (doc) {
-        const shortUrl = await this.generateShortUrlWithBitly(longUrl);
+        let shortUrl: string;
 
         if (!doc?.shortUrl) {
+          shortUrl = await this.generateShortUrlWithBitly(longUrl);
           await this.urlModel.updateOne({ url: doc.url }, {
             shortUrl,
           });
         }
         
-        return { shortUrl, longUrl: doc.url };
+        return { shortUrl: shortUrl || doc.shortUrl, longUrl: doc.url };
       }
       return { shortUrl: "", longUrl: "" }
     } catch (error) {
