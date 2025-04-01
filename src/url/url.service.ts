@@ -69,17 +69,13 @@ export class UrlService {
     const doc = await this.urlModel.findOne({ url: longUrl });
 
     if (doc) {
-      return { shortUrl: doc.shortUrl, longUrl: doc.url };
+      const shortUrl = await this.generateShortUrlWithBitly(longUrl);
+      await this.urlModel.create({
+        url: longUrl,
+        shortUrl,
+      });
+      return { shortUrl, longUrl: doc.url };
     }
-
-    const shortUrl = await this.generateShortUrlWithBitly(longUrl);
-
-    // save for later
-    await this.urlModel.create({
-      url: longUrl,
-      shortUrl,
-    });
-
-    return { shortUrl, longUrl };
+    return { shortUrl: "", longUrl: "" }
   }
 }
