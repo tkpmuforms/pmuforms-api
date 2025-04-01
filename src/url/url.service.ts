@@ -71,10 +71,13 @@ export class UrlService {
 
       if (doc) {
         const shortUrl = await this.generateShortUrlWithBitly(longUrl);
-        await this.urlModel.updateOne({ url: longUrl?.trim() }, {
-          url: longUrl,
-          shortUrl,
-        });
+
+        if (!doc?.shortUrl) {
+          await this.urlModel.updateOne({ url: doc.url }, {
+            shortUrl,
+          });
+        }
+        
         return { shortUrl, longUrl: doc.url };
       }
       return { shortUrl: "", longUrl: "" }
