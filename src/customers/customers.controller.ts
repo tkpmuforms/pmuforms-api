@@ -138,20 +138,7 @@ export class CustomersController {
 
     return { message: 'Note deleted successfully', notes };
   }
-
-  @Roles(UserRole.CUSTOMER)
-  @Patch('/personal-details')
-  async updatePersonalDetails(
-    @GetUser() authCustomer: CustomerDocument,
-    @Body() personalDetailsDto: UpdatePersonalDetailsDto,
-  ) {
-    const customer = await this.customerService.updatePersonalDetails(
-      authCustomer.id,
-      personalDetailsDto,
-    );
-    return { customer };
-  }
-
+  
   @Roles(UserRole.ARTIST)
   @Patch('/my-customers/:customerId/update-signature')
   async updateCustomerSignature(
@@ -166,5 +153,18 @@ export class CustomersController {
     );
 
     return { customer: customerDoc };
+  }
+
+  @Roles(UserRole.CUSTOMER)
+  @Patch('/personal-details')
+  async updatePersonalDetails(
+    @GetUser() authCustomer: CustomerDocument,
+    @Body() personalDetailsDto: UpdatePersonalDetailsDto,
+  ) {
+    const customer = await this.customerService.updatePersonalDetails(
+      authCustomer.id,
+      personalDetailsDto,
+    );
+    return { customer };
   }
 }
