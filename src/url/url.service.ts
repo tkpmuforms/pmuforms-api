@@ -66,16 +66,20 @@ export class UrlService {
   }
 
   async generateShortUrl(longUrl: string) {
-    const doc = await this.urlModel.findOne({ url: longUrl });
+    try {
+      const doc = await this.urlModel.findOne({ url: longUrl.trim() });
 
-    if (doc) {
-      const shortUrl = await this.generateShortUrlWithBitly(longUrl);
-      await this.urlModel.create({
-        url: longUrl,
-        shortUrl,
-      });
-      return { shortUrl, longUrl: doc.url };
+      if (doc) {
+        const shortUrl = await this.generateShortUrlWithBitly(longUrl);
+        await this.urlModel.updateOne({ url: longUrl?.trim() }, {
+          url: longUrl,
+          shortUrl,
+        });
+        return { shortUrl, longUrl: doc.url };
+      }
+      return { shortUrl: "", longUrl: "" }
+    } catch (error) {
+      throw new InternalServerErrorException('Unable to return business urls');
     }
-    return { shortUrl: "", longUrl: "" }
   }
 }
