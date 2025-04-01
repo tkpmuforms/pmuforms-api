@@ -43,7 +43,7 @@ export class AuthGuard implements CanActivate {
       });
 
       // Get the user from the database
-      let user: any;
+      let user: UserDocument | CustomerDocument;
 
       if (payload.role === UserRole.ARTIST) {
         user = await this.userModel.findOne({ userId: payload.sub });
@@ -54,6 +54,9 @@ export class AuthGuard implements CanActivate {
       if (!user) {
         throw new UnauthorizedException();
       }
+      user.lastLoggedIn = new Date();
+      await user.save();
+
       request['user'] = user;
       request['userRole'] = payload.role;
       request['artistId'] = payload.artistId ?? null;
