@@ -4,6 +4,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UrlService } from 'src/url/url.service';
 import { AppConfigService } from 'src/config/config.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -11,6 +13,7 @@ export class UsersService {
     private userModel: Model<UserDocument>,
     private urlService: UrlService,
     private config: AppConfigService,
+    private firebaseService: FirebaseService,
   ) {}
   async updateBusinessName(artistId: string, buinessName: string) {
     const artist = await this.userModel.findOne({ userId: artistId });
@@ -68,5 +71,18 @@ export class UsersService {
     await artist.save();
 
     return artist;
+  }
+
+  async testPushNotification(artist: UserDocument, dto: any) {
+    if (!artist.fcmToken) {
+      return { message: 'fcm token not found' };
+    }
+    await this.firebaseService.sendPushNotification({
+      title: dto.title,
+      body: dto.body,
+      fcmToken: artist.fcmToken,
+    });
+
+    return { message: 'success' };
   }
 }

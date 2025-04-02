@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -7,6 +7,7 @@ import {
   UpdateSignatureUrlDto,
   UpdateBusinessNameDto,
   UpdateFcmTokenDto,
+  TestPushNotificationDto,
 } from './dto';
 
 @Controller('api/artists')
@@ -39,6 +40,17 @@ export class UsersController {
     );
 
     return { artist: artistDoc };
+  }
+
+  /* FOR DEVELOPMENT PURPOSES ONLY */
+  @Roles(UserRole.ARTIST)
+  @Post('/test-push-notification')
+  async testPushNotification(
+    @GetUser() artist: UserDocument,
+    @Body() dto: TestPushNotificationDto,
+  ) {
+    const res = await this.usersService.testPushNotification(artist, dto);
+    return res;
   }
 
   @Get('/:artistId')

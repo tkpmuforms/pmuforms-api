@@ -17,3 +17,13 @@ export class UpdateSignatureUrlDto {
   @IsNotEmpty()
   signature_url: string;
 }
+
+export class TestPushNotificationDto {
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
+  @IsString()
+  @IsNotEmpty()
+  body: string;
+}
