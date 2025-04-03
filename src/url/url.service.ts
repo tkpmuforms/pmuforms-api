@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { AppConfigService } from 'src/config/config.service';
 import { UrlDocument, UserDocument } from 'src/database/schema';
 
@@ -90,7 +90,7 @@ export class UrlService {
         return { shortUrl: shortUrl || doc.shortUrl, longUrl: doc.url };
       }
 
-      const user = await this.userModel.findById(artistId);
+      const user = await this.userModel.findById(new Types.ObjectId(artistId));
 
       if (!user) {
         throw new NotFoundException('User not found');
@@ -101,6 +101,7 @@ export class UrlService {
 
       return { shortUrl, longUrl };
     } catch (error) {
+      console.log(`generateShortUrlError: ${error.message}`);
       throw new InternalServerErrorException(
         `Unable to return business urls - ${error?.message}`,
       );
