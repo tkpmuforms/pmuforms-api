@@ -90,7 +90,7 @@ export class UrlService {
         return { shortUrl: shortUrl || doc.shortUrl, longUrl: doc.url };
       }
 
-      const user = await this.userModel.findById(new Types.ObjectId(artistId));
+      const user = await this.userModel.findOne({ userId: artistId });
 
       if (!user) {
         throw new NotFoundException('User not found');
