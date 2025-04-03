@@ -138,7 +138,7 @@ export class CustomersController {
 
     return { message: 'Note deleted successfully', notes };
   }
-  
+
   @Roles(UserRole.ARTIST)
   @Patch('/my-customers/:customerId/update-signature')
   async updateCustomerSignature(

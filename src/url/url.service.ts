@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { Model } from 'mongoose';
@@ -35,7 +39,7 @@ export class UrlService {
   constructor(
     @InjectModel('urls')
     private urlModel: Model<UrlDocument>,
-    @InjectModel('users') 
+    @InjectModel('users')
     private userModel: Model<UserDocument>,
     private config: AppConfigService,
   ) {}
@@ -75,11 +79,14 @@ export class UrlService {
       if (doc) {
         if (!doc?.shortUrl) {
           shortUrl = await this.generateShortUrlWithBitly(longUrl);
-          await this.urlModel.updateOne({ url: doc.url }, {
-            shortUrl,
-          });
+          await this.urlModel.updateOne(
+            { url: doc.url },
+            {
+              shortUrl,
+            },
+          );
         }
-        
+
         return { shortUrl: shortUrl || doc.shortUrl, longUrl: doc.url };
       }
 
@@ -91,10 +98,12 @@ export class UrlService {
 
       shortUrl = await this.generateShortUrlWithBitly(longUrl);
       await this.urlModel.create({ shortUrl, url: longUrl });
-      
-      return { shortUrl, longUrl }
+
+      return { shortUrl, longUrl };
     } catch (error) {
-      throw new InternalServerErrorException('Unable to return business urls');
+      throw new InternalServerErrorException(
+        `Unable to return business urls - ${error?.message}`,
+      );
     }
   }
 }
