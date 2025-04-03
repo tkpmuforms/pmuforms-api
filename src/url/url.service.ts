@@ -1,9 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { Model } from 'mongoose';
 import { AppConfigService } from 'src/config/config.service';
-import { UrlDocument } from 'src/database/schema';
+import { UrlDocument, UserDocument } from 'src/database/schema';
 
 type BitLyShortenUrlResponse = {
   references: { [k: string]: any };
@@ -35,6 +35,8 @@ export class UrlService {
   constructor(
     @InjectModel('urls')
     private urlModel: Model<UrlDocument>,
+    @InjectModel('users') 
+    private userModel: Model<UserDocument>,
     private config: AppConfigService,
   ) {}
 
@@ -65,13 +67,12 @@ export class UrlService {
     }
   }
 
-  async generateShortUrl(longUrl: string) {
+  async generateShortUrl(longUrl: string, artistId: string) {
     try {
-      const doc = await this.urlModel.findOne({ url: longUrl.trim() });
+      let shortUrl: string;
+      const doc = await this.urlModel.findOne({ url: longUrl });
 
       if (doc) {
-        let shortUrl: string;
-
         if (!doc?.shortUrl) {
           shortUrl = await this.generateShortUrlWithBitly(longUrl);
           await this.urlModel.updateOne({ url: doc.url }, {
@@ -81,7 +82,17 @@ export class UrlService {
         
         return { shortUrl: shortUrl || doc.shortUrl, longUrl: doc.url };
       }
-      return { shortUrl: "", longUrl: "" }
+
+      const user = await this.userModel.findById(artistId);
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      shortUrl = await this.generateShortUrlWithBitly(longUrl);
+      await this.urlModel.create({ shortUrl, url: longUrl });
+      
+      return { shortUrl, longUrl }
     } catch (error) {
       throw new InternalServerErrorException('Unable to return business urls');
     }
