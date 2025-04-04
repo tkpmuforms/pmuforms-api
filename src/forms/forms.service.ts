@@ -9,6 +9,7 @@ import { Model } from 'mongoose';
 import {
   AppointmentDocument,
   FormTemplateDocument,
+  Section,
   UserDocument,
 } from 'src/database/schema';
 import {
@@ -133,19 +134,14 @@ export class FormsService {
     return form;
   }
 
-  private hashData(data: any[], isMongoData?: boolean) {
+  private hashData(data: Section[]) {
     const hash = createHash('sha256');
 
-    let cleanedData: any[];
-    if (isMongoData) {
-      cleanedData = data.map((obj) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _id, ...rest } = obj.toObject();
-        return rest;
-      });
-    } else {
-      cleanedData = data;
-    }
+    const cleanedData = data.map((obj) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = obj;
+      return rest;
+    });
 
     const sortedData = cleanedData.map((d) =>
       Object.keys(d)
@@ -188,9 +184,9 @@ export class FormsService {
     }
 
     const previousSectionData = this.hashData(
-      latestFormToModTemplateVersion.sections,
-      true,
+      latestFormToModTemplateVersion.toObject().sections,
     );
+
     const newSectionData = this.hashData(dto.sections);
 
     if (previousSectionData === newSectionData) {
@@ -200,40 +196,49 @@ export class FormsService {
     const versionNumber = latestFormToModTemplateVersion.versionNumber + 1;
 
     let newTemplateDocBody: Partial<FormTemplateDocument> = {
+      parentFormTemplateId: latestFormToModTemplateVersion.id,
       versionNumber,
       title: latestFormToModTemplateVersion.title,
       sections: dto.sections,
       artistId,
+      type: latestFormToModTemplateVersion.type,
+      services: latestFormToModTemplateVersion.services,
+      tags: latestFormToModTemplateVersion.tags,
+      usesServicesArrayVersioning:
+        latestFormToModTemplateVersion.usesServicesArrayVersioning,
     };
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _id: _, ...latestTemplateWithoutId } =
+      latestFormToModTemplateVersion.toObject();
+
+    let newTemplateId: string;
+    let newRootFormTemplateId: string;
+
+    if (
+      latestFormToModTemplateVersion.artistId &&
+      artistId !== latestFormToModTemplateVersion.artistId
+    ) {
+      throw new ForbiddenException(
+        `You are not allowed to modify this form. You can only modify forms you created or forms from the base template`,
+      );
+    }
 
     if (latestFormToModTemplateVersion.versionNumber === 0) {
       // this is a root template form
-      const id = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
-      newTemplateDocBody = {
-        ...latestFormToModTemplateVersion,
-        ...newTemplateDocBody,
-        id,
-        parentFormTemplateId: latestFormToModTemplateVersion.id,
-        rootFormTemplateId: latestFormToModTemplateVersion.id,
-      };
+      newTemplateId = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
+      newRootFormTemplateId = latestFormToModTemplateVersion.id;
     } else {
-      if (
-        latestFormToModTemplateVersion.artistId &&
-        artistId !== latestFormToModTemplateVersion.artistId
-      ) {
-        throw new ForbiddenException(
-          `You are not allowed to modify this form. You can only modify forms you created or forms from the base template`,
-        );
-      }
-      const id = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
-      newTemplateDocBody = {
-        ...latestFormToModTemplateVersion,
-        ...newTemplateDocBody,
-        id,
-        rootFormTemplateId: latestFormToModTemplateVersion.rootFormTemplateId,
-        parentFormTemplateId: latestFormToModTemplateVersion.id,
-      };
+      newTemplateId = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
+      newRootFormTemplateId = latestFormToModTemplateVersion.rootFormTemplateId;
     }
+
+    newTemplateDocBody = {
+      ...latestTemplateWithoutId,
+      ...newTemplateDocBody,
+      id: newTemplateId,
+      rootFormTemplateId: newRootFormTemplateId,
+    };
 
     const newFormTemplate =
       await this.formTemplateModel.create(newTemplateDocBody);
@@ -325,15 +330,20 @@ export class FormsService {
       },
       {},
     );
-    const sectionsForNewFormTemplate = [];
-    for (let i = 0; i < formTemplate.sections.length; i++) {
+
+    const sectionsForNewFormTemplate: Section[] = [];
+
+    for (const i in formTemplate.sections) {
       const sectionId = formTemplate.sections[i]._id.toString();
+
       if (sectionId in sectionsToChangeMap) {
         formTemplate.sections[i] = sectionsToChangeMap[sectionId];
+        sectionsForNewFormTemplate.push(formTemplate.sections[i]);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { _id, ...rest } = formTemplate.toObject().sections[i];
+        sectionsForNewFormTemplate.push(rest);
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _id, ...rest } = formTemplate.sections[i];
-      sectionsForNewFormTemplate.push(rest);
     }
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(
