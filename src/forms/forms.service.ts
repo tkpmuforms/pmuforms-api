@@ -12,13 +12,9 @@ import {
   Section,
   UserDocument,
 } from 'src/database/schema';
-import {
-  NewFormVersionDto,
-  UpdateCertainSectionsDto,
-  UpdateSectionsDto,
-} from './dto';
+import { NewFormVersionDto, UpdateCertainSectionsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 @Injectable()
 export class FormsService {
@@ -139,7 +135,7 @@ export class FormsService {
 
     const cleanedData = data.map((obj) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _id, ...rest } = obj;
+      const { _id, ...rest } = obj as any;
       return rest;
     });
 
@@ -187,7 +183,7 @@ export class FormsService {
       latestFormToModTemplateVersion.toObject().sections,
     );
 
-    const newSectionData = this.hashData(dto.sections);
+    const newSectionData = this.hashData(dto.sections as Section[]);
 
     if (previousSectionData === newSectionData) {
       throw new BadRequestException('no changes detected');
@@ -199,7 +195,7 @@ export class FormsService {
       parentFormTemplateId: latestFormToModTemplateVersion.id,
       versionNumber,
       title: latestFormToModTemplateVersion.title,
-      sections: dto.sections,
+      sections: dto.sections as Section[],
       artistId,
       type: latestFormToModTemplateVersion.type,
       services: latestFormToModTemplateVersion.services,
@@ -273,32 +269,6 @@ export class FormsService {
     return formTemplate;
   }
 
-  async updateFormTemplateSections(
-    formTemplateId: string,
-    artistId: string,
-    dto: UpdateSectionsDto,
-  ) {
-    /*
-     * Updates section details without creating a new version
-     */
-    const formTemplate = await this.formTemplateModel.findOne({
-      id: formTemplateId,
-      artistId,
-    });
-
-    if (!formTemplate) {
-      throw new NotFoundException(
-        `formTemplate with id ${formTemplateId} not found`,
-      );
-    }
-
-    formTemplate.sections = dto.sections;
-
-    await formTemplate.save();
-
-    return formTemplate;
-  }
-
   async updateCertainFormTemplateSections(
     formTemplateId: string,
     artistId: string,
@@ -325,25 +295,39 @@ export class FormsService {
     // transform dto.sections into an object with sectionId as key
     const sectionsToChangeMap = dto.sections.reduce(
       (acc: { [key: string]: any }, section) => {
-        acc[section._id] = section;
+        if (section.id) {
+          acc[section.id] = section;
+        }
         return acc;
       },
       {},
     );
 
+    const sectionsToAdd = dto.sections.filter(
+      (section) => !section.id,
+    ) as Section[];
+
     const sectionsForNewFormTemplate: Section[] = [];
 
+    // update sections in formTemplate.sections
     for (const i in formTemplate.sections) {
-      const sectionId = formTemplate.sections[i]._id.toString();
+      const sectionId = formTemplate.sections[i].id;
 
       if (sectionId in sectionsToChangeMap) {
+        if (sectionsToChangeMap[sectionId].skip === true) {
+          // skip = true means the section should not be added to the new form template
+          continue;
+        }
         formTemplate.sections[i] = sectionsToChangeMap[sectionId];
         sectionsForNewFormTemplate.push(formTemplate.sections[i]);
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _id, ...rest } = formTemplate.toObject().sections[i];
-        sectionsForNewFormTemplate.push(rest);
+        sectionsForNewFormTemplate.push(formTemplate.toObject().sections[i]);
       }
+    }
+
+    // add new sections to the end of the array
+    for (const section of sectionsToAdd) {
+      sectionsForNewFormTemplate.push({ id: randomUUID(), ...section });
     }
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(
