@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, ObjectId } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 
 export type FormTemplateDocument = HydratedDocument<FormTemplate>;
 
@@ -23,7 +23,8 @@ export class SectionData {
 
 @Schema()
 export class Section {
-  _id?: ObjectId;
+  @Prop()
+  id: string;
 
   @Prop()
   data: SectionData[];

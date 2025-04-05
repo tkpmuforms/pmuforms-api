@@ -9,15 +9,12 @@ import { Model } from 'mongoose';
 import {
   AppointmentDocument,
   FormTemplateDocument,
+  Section,
   UserDocument,
 } from 'src/database/schema';
-import {
-  NewFormVersionDto,
-  UpdateCertainSectionsDto,
-  UpdateSectionsDto,
-} from './dto';
+import { NewFormVersionDto, UpdateCertainSectionsDto } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 @Injectable()
 export class FormsService {
@@ -133,19 +130,14 @@ export class FormsService {
     return form;
   }
 
-  private hashData(data: any[], isMongoData?: boolean) {
+  private hashData(data: Section[]) {
     const hash = createHash('sha256');
 
-    let cleanedData: any[];
-    if (isMongoData) {
-      cleanedData = data.map((obj) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { _id, ...rest } = obj.toObject();
-        return rest;
-      });
-    } else {
-      cleanedData = data;
-    }
+    const cleanedData = data.map((obj) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _id, ...rest } = obj as any;
+      return rest;
+    });
 
     const sortedData = cleanedData.map((d) =>
       Object.keys(d)
@@ -188,10 +180,10 @@ export class FormsService {
     }
 
     const previousSectionData = this.hashData(
-      latestFormToModTemplateVersion.sections,
-      true,
+      latestFormToModTemplateVersion.toObject().sections,
     );
-    const newSectionData = this.hashData(dto.sections);
+
+    const newSectionData = this.hashData(dto.sections as Section[]);
 
     if (previousSectionData === newSectionData) {
       throw new BadRequestException('no changes detected');
@@ -200,40 +192,49 @@ export class FormsService {
     const versionNumber = latestFormToModTemplateVersion.versionNumber + 1;
 
     let newTemplateDocBody: Partial<FormTemplateDocument> = {
+      parentFormTemplateId: latestFormToModTemplateVersion.id,
       versionNumber,
       title: latestFormToModTemplateVersion.title,
-      sections: dto.sections,
+      sections: dto.sections as Section[],
       artistId,
+      type: latestFormToModTemplateVersion.type,
+      services: latestFormToModTemplateVersion.services,
+      tags: latestFormToModTemplateVersion.tags,
+      usesServicesArrayVersioning:
+        latestFormToModTemplateVersion.usesServicesArrayVersioning,
     };
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _id: _, ...latestTemplateWithoutId } =
+      latestFormToModTemplateVersion.toObject();
+
+    let newTemplateId: string;
+    let newRootFormTemplateId: string;
+
+    if (
+      latestFormToModTemplateVersion.artistId &&
+      artistId !== latestFormToModTemplateVersion.artistId
+    ) {
+      throw new ForbiddenException(
+        `You are not allowed to modify this form. You can only modify forms you created or forms from the base template`,
+      );
+    }
 
     if (latestFormToModTemplateVersion.versionNumber === 0) {
       // this is a root template form
-      const id = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
-      newTemplateDocBody = {
-        ...latestFormToModTemplateVersion,
-        ...newTemplateDocBody,
-        id,
-        parentFormTemplateId: latestFormToModTemplateVersion.id,
-        rootFormTemplateId: latestFormToModTemplateVersion.id,
-      };
+      newTemplateId = `${latestFormToModTemplateVersion.id}-${artistId}-${versionNumber}`;
+      newRootFormTemplateId = latestFormToModTemplateVersion.id;
     } else {
-      if (
-        latestFormToModTemplateVersion.artistId &&
-        artistId !== latestFormToModTemplateVersion.artistId
-      ) {
-        throw new ForbiddenException(
-          `You are not allowed to modify this form. You can only modify forms you created or forms from the base template`,
-        );
-      }
-      const id = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
-      newTemplateDocBody = {
-        ...latestFormToModTemplateVersion,
-        ...newTemplateDocBody,
-        id,
-        rootFormTemplateId: latestFormToModTemplateVersion.rootFormTemplateId,
-        parentFormTemplateId: latestFormToModTemplateVersion.id,
-      };
+      newTemplateId = `${latestFormToModTemplateVersion.rootFormTemplateId}-${artistId}-${versionNumber}`;
+      newRootFormTemplateId = latestFormToModTemplateVersion.rootFormTemplateId;
     }
+
+    newTemplateDocBody = {
+      ...latestTemplateWithoutId,
+      ...newTemplateDocBody,
+      id: newTemplateId,
+      rootFormTemplateId: newRootFormTemplateId,
+    };
 
     const newFormTemplate =
       await this.formTemplateModel.create(newTemplateDocBody);
@@ -268,32 +269,6 @@ export class FormsService {
     return formTemplate;
   }
 
-  async updateFormTemplateSections(
-    formTemplateId: string,
-    artistId: string,
-    dto: UpdateSectionsDto,
-  ) {
-    /*
-     * Updates section details without creating a new version
-     */
-    const formTemplate = await this.formTemplateModel.findOne({
-      id: formTemplateId,
-      artistId,
-    });
-
-    if (!formTemplate) {
-      throw new NotFoundException(
-        `formTemplate with id ${formTemplateId} not found`,
-      );
-    }
-
-    formTemplate.sections = dto.sections;
-
-    await formTemplate.save();
-
-    return formTemplate;
-  }
-
   async updateCertainFormTemplateSections(
     formTemplateId: string,
     artistId: string,
@@ -320,20 +295,39 @@ export class FormsService {
     // transform dto.sections into an object with sectionId as key
     const sectionsToChangeMap = dto.sections.reduce(
       (acc: { [key: string]: any }, section) => {
-        acc[section._id] = section;
+        if (section.id) {
+          acc[section.id] = section;
+        }
         return acc;
       },
       {},
     );
-    const sectionsForNewFormTemplate = [];
-    for (let i = 0; i < formTemplate.sections.length; i++) {
-      const sectionId = formTemplate.sections[i]._id.toString();
+
+    const sectionsToAdd = dto.sections.filter(
+      (section) => !section.id,
+    ) as Section[];
+
+    const sectionsForNewFormTemplate: Section[] = [];
+
+    // update sections in formTemplate.sections
+    for (const i in formTemplate.sections) {
+      const sectionId = formTemplate.sections[i].id;
+
       if (sectionId in sectionsToChangeMap) {
+        if (sectionsToChangeMap[sectionId].skip === true) {
+          // skip = true means the section should not be added to the new form template
+          continue;
+        }
         formTemplate.sections[i] = sectionsToChangeMap[sectionId];
+        sectionsForNewFormTemplate.push(formTemplate.sections[i]);
+      } else {
+        sectionsForNewFormTemplate.push(formTemplate.toObject().sections[i]);
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _id, ...rest } = formTemplate.sections[i];
-      sectionsForNewFormTemplate.push(rest);
+    }
+
+    // add new sections to the end of the array
+    for (const section of sectionsToAdd) {
+      sectionsForNewFormTemplate.push({ id: randomUUID(), ...section });
     }
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(

@@ -3,11 +3,7 @@ import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
-import {
-  NewFormVersionDto,
-  UpdateCertainSectionsDto,
-  UpdateSectionsDto,
-} from './dto';
+import { NewFormVersionDto, UpdateCertainSectionsDto } from './dto';
 import { UpdateServicesDto } from 'src/services/dto';
 
 @Controller('api/forms')
@@ -70,21 +66,6 @@ export class FormsController {
       templateId,
       artist.userId,
       dto.services,
-    );
-
-    return { form };
-  }
-
-  @Patch('/:templateId/sections')
-  async updateFormTemplateSections(
-    @GetUser() artist: UserDocument,
-    @Param('templateId') templateId: string,
-    @Body() dto: UpdateSectionsDto,
-  ) {
-    const form = await this.formsService.updateFormTemplateSections(
-      templateId,
-      artist.userId,
-      dto,
     );
 
     return { form };

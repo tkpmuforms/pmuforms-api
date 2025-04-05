@@ -22,13 +22,6 @@ export class NewFormVersionDto {
   sections: SectionDto[];
 }
 
-export class UpdateSectionsDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => SectionDto)
-  sections: SectionDto[];
-}
-
 export class UpdateFormServicesDTO {
   @IsArray()
   @Type(() => Number)

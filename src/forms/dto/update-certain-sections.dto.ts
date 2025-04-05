@@ -31,9 +31,13 @@ class SectionDto {
   @IsBoolean()
   isClientInformation?: boolean;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  _id: string;
+  id?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  skip?: boolean;
 }
 
 class SectionDataDto {
