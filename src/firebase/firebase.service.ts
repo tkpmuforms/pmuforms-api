@@ -17,8 +17,7 @@ export class FirebaseService {
         ),
       });
     } catch (error: any) {
-      console.info(`Failed to initialize firebase admin.
-        Suggestion: Create a file called '/secrets/firebase-service-account-credentials.json' in the project base directory with the appropriate firebase service account secrets from the firebase console. \n`);
+      console.info('Failed to initialize firebase admin.');
       console.error({ error });
     }
   }
