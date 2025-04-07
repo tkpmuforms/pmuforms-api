@@ -15,7 +15,7 @@ export class SectionData {
   title: string;
 
   @Prop()
-  type: string;
+  type?: string;
 
   @Prop()
   required?: boolean;

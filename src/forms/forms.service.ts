@@ -156,7 +156,7 @@ export class FormsService {
     artistId: string,
     formTemplateId: string,
     dto: NewFormVersionDto,
-    skipChangeDetection?: boolean,
+    options?: { skipChangeDetection?: boolean; services?: number[] },
   ) {
     const formToMod = await this.formTemplateModel.findOne({
       id: formTemplateId,
@@ -180,7 +180,7 @@ export class FormsService {
       latestFormToModTemplateVersion = formToMod;
     }
 
-    if (!skipChangeDetection) {
+    if (options && !options.skipChangeDetection) {
       const previousSectionData = this.hashData(
         latestFormToModTemplateVersion.toObject().sections,
       );
@@ -201,7 +201,7 @@ export class FormsService {
       sections: dto.sections as Section[],
       artistId,
       type: latestFormToModTemplateVersion.type,
-      services: latestFormToModTemplateVersion.services,
+      services: options?.services ?? latestFormToModTemplateVersion.services,
       tags: latestFormToModTemplateVersion.tags,
       usesServicesArrayVersioning:
         latestFormToModTemplateVersion.usesServicesArrayVersioning,
@@ -252,7 +252,6 @@ export class FormsService {
   ) {
     const formTemplate = await this.formTemplateModel.findOne({
       id: formTemplateId,
-      artistId,
     });
 
     if (!formTemplate) {
@@ -261,15 +260,32 @@ export class FormsService {
       );
     }
 
-    // removing duplicates from services array
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to modify this form`);
+    }
+
     const servicesSet = new Set(services);
     const formServices = Array.from(servicesSet);
 
-    formTemplate.services = formServices;
+    if (formTemplate.versionNumber > 0) {
+      // removing duplicates from services array
 
-    await formTemplate.save();
+      formTemplate.services = formServices;
 
-    return formTemplate;
+      await formTemplate.save();
+
+      return formTemplate;
+    } else {
+      // creating a new form template with the updated services
+      const newFormTemplate = await this.createNewFormFromExistingTemplate(
+        artistId,
+        formTemplateId,
+        { sections: formTemplate.toObject().sections, formTemplateId },
+        { skipChangeDetection: true, services: formServices },
+      );
+
+      return newFormTemplate;
+    }
   }
 
   async updateCertainFormTemplateSections(

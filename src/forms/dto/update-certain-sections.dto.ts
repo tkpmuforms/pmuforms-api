@@ -53,11 +53,15 @@ class SectionDataDto {
   @IsString()
   title: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  type: string;
+  type?: string;
 
   @IsOptional()
   @IsBoolean()
   required?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  skip?: boolean;
 }
