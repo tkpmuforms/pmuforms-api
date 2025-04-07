@@ -47,7 +47,7 @@ export class User {
   services: Service[];
 
   @Prop()
-  fcmToken: string;
+  fcmToken?: string;
 
   @Prop()
   signature_url: string;

@@ -17,6 +17,7 @@ import { FormsModule } from './forms/forms.module';
 import { FilledFormsModule } from './filled-forms/filled-forms.module';
 import { MessagesModule } from './messages/messages.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { UtilsModule } from './utils/utils.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     FormsModule,
     FilledFormsModule,
     MessagesModule,
+    UtilsModule,
   ],
   controllers: [AppController],
   providers: [

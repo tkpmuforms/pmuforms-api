@@ -12,6 +12,7 @@ import {
   AppointmentDocument,
   FilledFormDocument,
   FormTemplateDocument,
+  UserDocument,
 } from 'src/database/schema';
 import {
   // FilledFormEvent,
@@ -21,6 +22,7 @@ import { FormsService } from 'src/forms/forms.service';
 import { FilledFormStatus } from 'src/enums';
 import { randomUUID } from 'node:crypto';
 import { paginationMetaGenerator } from 'src/utils';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class FilledFormsService {
@@ -31,8 +33,11 @@ export class FilledFormsService {
     private formTemplateModel: Model<FormTemplateDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
+    @InjectModel('users')
+    private artistModel: Model<UserDocument>,
     private eventEmitter: EventEmitter2,
     private formsService: FormsService,
+    private utilsService: UtilsService,
   ) {}
 
   async submitForm(
@@ -248,5 +253,39 @@ export class FilledFormsService {
       appointment.allFormsCompleted = completedStatus;
       await appointment.save();
     }
+    if (appointment.allFormsCompleted) {
+      // notify user that all forms have been completed
+      await this.notifyArtistAboutFormCompletion(appointment);
+    }
+  }
+
+  private async notifyArtistAboutFormCompletion(
+    appointmentDoc: AppointmentDocument,
+  ) {
+    //
+    const artist = await this.artistModel.findOne({
+      userId: appointmentDoc.artistId,
+    });
+
+    if (!artist) {
+      return;
+    }
+
+    await this.utilsService.sendPushNotification({
+      title: 'New Appointment Form Submitted!',
+      body: `Your client has completed their appointment forms for their upcoming service. Review their details and get ready to create something amazing!`,
+      fcmToken: artist.fcmToken,
+    });
+
+    await this.utilsService.sendEmail({
+      to: artist.email,
+      subject: 'New Appointment Form Submitted!',
+      message: `
+        <p>Great news! Your client has completed their appointment forms for their upcoming service.</p>
+        <p>Review their details and get ready to create something amazing!</p>
+        <p>&nbsp;</p>
+        <p>[View Appointment Details] </p>
+      `,
+    });
   }
 }
