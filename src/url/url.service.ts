@@ -78,7 +78,16 @@ export class UrlService {
 
       if (doc) {
         if (!doc?.shortUrl) {
-          shortUrl = await this.generateShortUrlWithBitly(longUrl);
+          try {
+            shortUrl = await this.generateShortUrlWithBitly(longUrl);
+          } catch (error) {
+            console.log(error?.message);
+          }
+          
+          if (!shortUrl) {
+            shortUrl = longUrl;
+          }
+
           await this.urlModel.updateOne(
             { url: doc.url },
             {
@@ -87,7 +96,7 @@ export class UrlService {
           );
         }
 
-        return { shortUrl: shortUrl || doc.shortUrl, longUrl: doc.url };
+        return { shortUrl, longUrl: doc.url };
       }
 
       const user = await this.userModel.findOne({ userId: artistId });
