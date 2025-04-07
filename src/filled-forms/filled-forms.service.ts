@@ -252,11 +252,10 @@ export class FilledFormsService {
 
       appointment.allFormsCompleted = completedStatus;
       await appointment.save();
-
-      if (appointment.allFormsCompleted) {
-        // notify user that all forms have been completed
-        await this.notifyArtistAboutFormCompletion(appointment);
-      }
+    }
+    if (appointment.allFormsCompleted) {
+      // notify user that all forms have been completed
+      await this.notifyArtistAboutFormCompletion(appointment);
     }
   }
 
@@ -265,26 +264,26 @@ export class FilledFormsService {
   ) {
     //
     const artist = await this.artistModel.findOne({
-      id: appointmentDoc.artistId,
+      userId: appointmentDoc.artistId,
     });
 
     if (!artist) {
       return;
     }
 
-    this.utilsService.sendPushNotification({
+    await this.utilsService.sendPushNotification({
       title: 'New Appointment Form Submitted!',
       body: `Your client has completed their appointment forms for their upcoming service. Review their details and get ready to create something amazing!`,
       fcmToken: artist.fcmToken,
     });
 
-    this.utilsService.sendEmail({
+    await this.utilsService.sendEmail({
       to: artist.email,
       subject: 'New Appointment Form Submitted!',
       message: `
         <p>Great news! Your client has completed their appointment forms for their upcoming service.</p>
         <p>Review their details and get ready to create something amazing!</p>
-        <p>&nbsp</p>
+        <p>&nbsp;</p>
         <p>[View Appointment Details] </p>
       `,
     });

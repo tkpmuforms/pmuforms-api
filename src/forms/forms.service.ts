@@ -156,6 +156,7 @@ export class FormsService {
     artistId: string,
     formTemplateId: string,
     dto: NewFormVersionDto,
+    skipChangeDetection?: boolean,
   ) {
     const formToMod = await this.formTemplateModel.findOne({
       id: formTemplateId,
@@ -179,14 +180,16 @@ export class FormsService {
       latestFormToModTemplateVersion = formToMod;
     }
 
-    const previousSectionData = this.hashData(
-      latestFormToModTemplateVersion.toObject().sections,
-    );
+    if (!skipChangeDetection) {
+      const previousSectionData = this.hashData(
+        latestFormToModTemplateVersion.toObject().sections,
+      );
 
-    const newSectionData = this.hashData(dto.sections as Section[]);
+      const newSectionData = this.hashData(dto.sections as Section[]);
 
-    if (previousSectionData === newSectionData) {
-      throw new BadRequestException('no changes detected');
+      if (previousSectionData === newSectionData) {
+        throw new BadRequestException('no changes detected');
+      }
     }
 
     const versionNumber = latestFormToModTemplateVersion.versionNumber + 1;

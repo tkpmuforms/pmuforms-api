@@ -45,7 +45,7 @@ export class FirebaseService {
   async sendPushNotification(params: {
     title: string;
     body: string;
-    fcmToken: string;
+    fcmToken?: string;
   }) {
     try {
       const { title, body, fcmToken } = params;
