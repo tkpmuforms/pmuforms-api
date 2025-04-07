@@ -27,6 +27,8 @@ export const configSchema = z.object({
   SMTP_PASSWORD: z.string(),
 
   CONTACT_US_EMAIL: z.string(),
+
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

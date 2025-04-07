@@ -3,23 +3,19 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getAuth } from 'firebase-admin/auth';
 import path from 'node:path';
+import { AppConfigService } from 'src/config/config.service';
 
 @Injectable()
 export class FirebaseService {
-  constructor() {
+  constructor(private config: AppConfigService) {
     // initialize firebase admin
 
     // initialize firebase admin
-    const serviceAccountCredentialsPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'secrets',
-      'firebase-service-account-credentials.json',
-    );
+    const firebaseSirverAccoutCred = this.config.get('FIREBASE_SERVICE_ACCOUNT_JSON');
+
     try {
       initializeApp({
-        credential: cert(serviceAccountCredentialsPath),
+        credential: cert(firebaseSirverAccoutCred),
       });
     } catch (error: any) {
       console.info(`Failed to initialize firebase admin.
