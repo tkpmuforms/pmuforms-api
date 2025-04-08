@@ -88,7 +88,7 @@ export class UrlService {
         );
       }
 
-      return { shortUrl: doc.url, longUrl: doc.url };
+      return { shortUrl: doc?.url, longUrl: doc?.url };
     } catch (error) {
       console.log(`generateShortUrlError: ${error.message}`);
       throw new InternalServerErrorException(
