@@ -156,7 +156,11 @@ export class FormsService {
     artistId: string,
     formTemplateId: string,
     dto: NewFormVersionDto,
-    options?: { skipChangeDetection?: boolean; services?: number[] },
+    options?: {
+      skipChangeDetection?: boolean;
+      services?: number[];
+      isDeleted?: boolean;
+    },
   ) {
     const formToMod = await this.formTemplateModel.findOne({
       id: formTemplateId,
@@ -206,6 +210,11 @@ export class FormsService {
       usesServicesArrayVersioning:
         latestFormToModTemplateVersion.usesServicesArrayVersioning,
     };
+
+    if (options && options.isDeleted) {
+      newTemplateDocBody.isDeleted = true;
+      newTemplateDocBody.deletedAt = new Date();
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _id: _, ...latestTemplateWithoutId } =
@@ -363,5 +372,37 @@ export class FormsService {
     );
 
     return newFormTemplate;
+  }
+
+  async deleteFormTemplate(formTemplateId: string, artistId: string) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+    });
+
+    if (!formTemplate) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to delete this form. `);
+    }
+
+    if (formTemplate.versionNumber > 0) {
+      formTemplate.isDeleted = true;
+      formTemplate.deletedAt = new Date();
+      await formTemplate.save();
+    } else {
+      // creating a new form template with the updated services
+      await this.createNewFormFromExistingTemplate(
+        artistId,
+        formTemplateId,
+        { sections: formTemplate.toObject().sections, formTemplateId },
+        { skipChangeDetection: true, isDeleted: true },
+      );
+    }
+
+    return { message: 'Form template deleted successfully' };
   }
 }
