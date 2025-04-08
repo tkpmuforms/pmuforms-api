@@ -314,7 +314,14 @@ export class FormsService {
     // transform dto.sections into an object with sectionId as key
     const sectionsToChangeMap = dto.sections.reduce(
       (acc: { [key: string]: any }, section) => {
+        const sectionData: UpdateCertainSectionsDto['sections'][0]['data'] = [];
         if (section.id) {
+          for (const data of section.data) {
+            if (!data.skip) {
+              sectionData.push(data);
+            }
+          }
+          section.data = sectionData;
           acc[section.id] = section;
         }
         return acc;
