@@ -66,49 +66,29 @@ export class UrlService {
       );
       return res.data.link;
     } catch (error: any) {
-      console.error({ error });
-      throw new InternalServerErrorException('Unable to generate short url');
+      console.error(`generateShortUrlWithBitly: ${error?.message}`);
     }
   }
 
   async generateShortUrl(longUrl: string, artistId: string) {
     try {
-      let shortUrl: string;
-      const doc = await this.urlModel.findOne({ url: longUrl });
-
-      if (doc) {
-        if (!doc?.shortUrl) {
-          try {
-            shortUrl = await this.generateShortUrlWithBitly(longUrl);
-          } catch (error) {
-            console.log(error?.message);
-          }
-          
-          if (!shortUrl) {
-            shortUrl = longUrl;
-          }
-
-          await this.urlModel.updateOne(
-            { url: doc.url },
-            {
-              shortUrl,
-            },
-          );
-        }
-
-        return { shortUrl, longUrl: doc.url };
-      }
-
       const user = await this.userModel.findOne({ userId: artistId });
 
       if (!user) {
         throw new NotFoundException('User not found');
       }
+      
+      const doc = await this.urlModel.findOne({ url: longUrl });
 
-      shortUrl = await this.generateShortUrlWithBitly(longUrl);
-      await this.urlModel.create({ shortUrl, url: longUrl });
+      if (!doc?.shortUrl) {
+        await this.urlModel.updateOne(
+          {
+            shortUrl: longUrl,
+          },
+        );
+      }
 
-      return { shortUrl, longUrl };
+      return { shortUrl: doc.url, longUrl: doc.url };
     } catch (error) {
       console.log(`generateShortUrlError: ${error.message}`);
       throw new InternalServerErrorException(
