@@ -321,8 +321,13 @@ export class FormsService {
     }
 
     // transform dto.sections into an object with sectionId as key
+    const sectionsToAdd: UpdateCertainSectionsDto['sections'] = [];
+
     const sectionsToChangeMap = dto.sections.reduce(
-      (acc: { [key: string]: any }, section) => {
+      (
+        acc: { [key: string]: UpdateCertainSectionsDto['sections'][0] },
+        section,
+      ) => {
         const sectionData: UpdateCertainSectionsDto['sections'][0]['data'] = [];
         if (section.id) {
           for (const data of section.data) {
@@ -332,17 +337,17 @@ export class FormsService {
           }
           section.data = sectionData;
           acc[section.id] = section;
+        } else {
+          sectionsToAdd.push(section);
         }
         return acc;
       },
       {},
     );
 
-    const sectionsToAdd = dto.sections.filter(
-      (section) => !section.id,
-    ) as Section[];
+    // const sectionsToAdd = dto.sections.filter((section) => !section.id);
 
-    const sectionsForNewFormTemplate: Section[] = [];
+    const sectionsForNewFormTemplate: UpdateCertainSectionsDto['sections'] = [];
 
     // update sections in formTemplate.sections
     for (const i in formTemplate.sections) {
@@ -353,7 +358,10 @@ export class FormsService {
           // skip = true means the section should not be added to the new form template
           continue;
         }
-        formTemplate.sections[i] = sectionsToChangeMap[sectionId];
+        formTemplate.sections[i] = {
+          ...sectionsToChangeMap[sectionId],
+          id: sectionId,
+        };
         sectionsForNewFormTemplate.push(formTemplate.sections[i]);
       } else {
         sectionsForNewFormTemplate.push(formTemplate.toObject().sections[i]);
@@ -362,6 +370,13 @@ export class FormsService {
 
     // add new sections to the end of the array
     for (const section of sectionsToAdd) {
+      const sectionData: UpdateCertainSectionsDto['sections'][0]['data'] = [];
+      for (const data of section.data) {
+        if (!data.skip) {
+          sectionData.push(data);
+        }
+      }
+      section.data = sectionData;
       sectionsForNewFormTemplate.push({ id: randomUUID(), ...section });
     }
 
