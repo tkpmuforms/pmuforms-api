@@ -42,18 +42,23 @@ export class FormsService {
       parentFormTemplateId: null,
       versionNumber: 0,
     });
-
+    const validForms = [];
     for (const i in forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
         artist.userId,
         forms[i].id,
       );
       if (latestFormVersion) {
-        forms[i] = latestFormVersion;
+        if (latestFormVersion.isDeleted) {
+          continue;
+        }
+        validForms.push(latestFormVersion);
+      } else {
+        validForms.push(forms[i]);
       }
     }
 
-    return forms;
+    return validForms;
   }
 
   async getFormTemplateById(formTemplateId: string) {
@@ -78,7 +83,7 @@ export class FormsService {
     }
 
     // root form templates
-    let forms = await this.formTemplateModel.find({
+    const forms = await this.formTemplateModel.find({
       rootFormTemplateId: null,
       parentFormTemplateId: null,
       versionNumber: 0,
@@ -87,33 +92,31 @@ export class FormsService {
       },
     });
 
+    const validForms = [];
+
     // replace root forms with the most recent version if it exists
-    let i = 0;
     for (const f of forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
         appointment.artistId,
         f.id,
       );
 
-      if (latestFormVersion && latestFormVersion?.services?.length) {
-        forms[i] = latestFormVersion;
-      } else {
-        if (!!latestFormVersion) {
-          //form version exist but has no service, do not replace with root form
-          forms[i] = null;
+      if (latestFormVersion) {
+        if (
+          latestFormVersion.isDeleted ||
+          latestFormVersion.services.length === 0
+        ) {
+          continue;
         }
-
-        //keep the root form since no version exists
+        validForms.push(latestFormVersion);
+      } else {
+        validForms.push(f);
       }
-
-      i++;
     }
-
-    forms = forms.filter((f) => f !== null);
 
     const metadata = paginationMetaGenerator(forms.length, 1, forms.length);
 
-    return { metadata, forms };
+    return { metadata, forms: validForms };
   }
 
   private async getLatestFormTemplateByArtist(
@@ -166,7 +169,7 @@ export class FormsService {
       id: formTemplateId,
     });
 
-    if (!formToMod) {
+    if (!formToMod || formToMod.isDeleted) {
       throw new NotFoundException(
         `form template with id ${formTemplateId} not found`,
       );
@@ -263,7 +266,7 @@ export class FormsService {
       id: formTemplateId,
     });
 
-    if (!formTemplate) {
+    if (!formTemplate || formTemplate.isDeleted) {
       throw new NotFoundException(
         `formTemplate with id ${formTemplateId} not found`,
       );
@@ -310,7 +313,7 @@ export class FormsService {
       id: formTemplateId,
     });
 
-    if (!formTemplate) {
+    if (!formTemplate || formTemplate.isDeleted) {
       throw new NotFoundException(
         `formTemplate with id ${formTemplateId} not found`,
       );
@@ -394,7 +397,7 @@ export class FormsService {
       id: formTemplateId,
     });
 
-    if (!formTemplate) {
+    if (!formTemplate || formTemplate.isDeleted) {
       throw new NotFoundException(
         `formTemplate with id ${formTemplateId} not found`,
       );
