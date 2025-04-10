@@ -1,5 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { CustomerDocument } from './customer.schema';
+import { UserDocument } from './user.schema';
 
 export type AppointmentDocument = HydratedDocument<Appointment>;
 
@@ -38,6 +40,12 @@ export class Appointment {
 
   @Prop()
   formsToFillCount: number;
+
+  serviceDetails: { id: number; service: string }[];
+
+  artist: UserDocument;
+
+  customer: CustomerDocument;
 }
 
 export const AppointmentSchema = SchemaFactory.createForClass(Appointment);
@@ -54,4 +62,18 @@ AppointmentSchema.virtual('serviceDetails', {
   localField: 'services',
   foreignField: 'id',
   justOne: false,
+});
+
+AppointmentSchema.virtual('customer', {
+  ref: 'customers',
+  localField: 'customerId',
+  foreignField: 'id',
+  justOne: true,
+});
+
+AppointmentSchema.virtual('artist', {
+  ref: 'users',
+  localField: 'artistId',
+  foreignField: 'userId',
+  justOne: true,
 });

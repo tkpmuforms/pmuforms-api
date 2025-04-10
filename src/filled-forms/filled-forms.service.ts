@@ -224,68 +224,76 @@ export class FilledFormsService {
   */
   @OnEvent('filled-form.submitted', { async: true })
   async handleFilledFormSubmittedEvent(event: FilledFormSubmittedEvent) {
-    const { appointment } = event.payload;
+    try {
+      const { appointment } = event.payload;
 
-    // check all forms for this appointment
-    const { forms } = await this.formsService.getFormTemplatesForAppointment(
-      appointment.id,
-    );
+      // check all forms for this appointment
+      const { forms } = await this.formsService.getFormTemplatesForAppointment(
+        appointment.id,
+      );
 
-    // check forms submitted of this appointment
-    const submittedForms = await this.filledFormModel.find({
-      appointmentId: appointment.id,
-    });
+      // check forms submitted of this appointment
+      const submittedForms = await this.filledFormModel.find({
+        appointmentId: appointment.id,
+      });
 
-    if (submittedForms.length >= forms.length) {
-      // check all form status of every submitted form
-      let completedStatus = true;
+      if (submittedForms.length >= forms.length) {
+        // check all form status of every submitted form
+        let completedStatus = true;
 
-      for (const submittedForm of submittedForms) {
-        completedStatus =
-          completedStatus &&
-          submittedForm.status === FilledFormStatus.COMPLETED;
-        if (!completedStatus) {
-          // early return
-          break;
+        for (const submittedForm of submittedForms) {
+          completedStatus =
+            completedStatus &&
+            submittedForm.status === FilledFormStatus.COMPLETED;
+          if (!completedStatus) {
+            // early return
+            break;
+          }
         }
-      }
 
-      appointment.allFormsCompleted = completedStatus;
-      await appointment.save();
-    }
-    if (appointment.allFormsCompleted) {
-      // notify user that all forms have been completed
-      await this.notifyArtistAboutFormCompletion(appointment);
-    }
+        appointment.allFormsCompleted = completedStatus;
+        await appointment.save();
+      }
+      if (appointment.allFormsCompleted) {
+        // notify user that all forms have been completed
+        await this.notifyArtistAboutFormCompletion(appointment);
+      }
+    } catch {}
   }
 
   private async notifyArtistAboutFormCompletion(
     appointmentDoc: AppointmentDocument,
   ) {
-    //
-    const artist = await this.artistModel.findOne({
-      userId: appointmentDoc.artistId,
-    });
-
-    if (!artist) {
-      return;
-    }
+    await appointmentDoc.populate('artist');
+    await appointmentDoc.populate('customer');
+    await appointmentDoc.populate('serviceDetails');
 
     await this.utilsService.sendPushNotification({
       title: 'New Appointment Form Submitted!',
       body: `Your client has completed their appointment forms for their upcoming service. Review their details and get ready to create something amazing!`,
-      fcmToken: artist.fcmToken,
+      fcmToken: appointmentDoc.artist.fcmToken,
     });
 
+    const [firstName, lastName] = appointmentDoc.customer.name.split(' ');
+
+    const customerName = `${firstName} ${lastName?.slice(0, 1) || ''}.`;
+
+    let servicesList = '';
+    for (const service of appointmentDoc.serviceDetails) {
+      servicesList += ` <li>${service.service}</li>`;
+    }
+
     await this.utilsService.sendEmail({
-      to: artist.email,
+      to: appointmentDoc.artist.email,
       subject: 'New Appointment Form Submitted!',
-      message: `
-        <p>Great news! Your client has completed their appointment forms for their upcoming service.</p>
+      message: `<body>
+        <p>Great news! ${customerName} has completed their appointment forms for their upcoming service.</p>
         <p>Review their details and get ready to create something amazing!</p>
-        <p>&nbsp;</p>
-        <p>[View Appointment Details] </p>
-      `,
+        <div>
+          <p><b>Services being done</b></p>
+          <ul> ${servicesList}</ul>
+        </div>
+      </body>`,
     });
   }
 }
