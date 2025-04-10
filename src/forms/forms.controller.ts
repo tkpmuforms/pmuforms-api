@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -81,6 +90,19 @@ export class FormsController {
       templateId,
       artist.userId,
       dto,
+    );
+
+    return { form };
+  }
+
+  @Delete('/:templateId/delete')
+  async deleteFormTemplate(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+  ) {
+    const form = await this.formsService.deleteFormTemplate(
+      templateId,
+      artist.userId,
     );
 
     return { form };

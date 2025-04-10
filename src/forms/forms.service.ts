@@ -42,18 +42,23 @@ export class FormsService {
       parentFormTemplateId: null,
       versionNumber: 0,
     });
-
+    const validForms = [];
     for (const i in forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
         artist.userId,
         forms[i].id,
       );
       if (latestFormVersion) {
-        forms[i] = latestFormVersion;
+        if (latestFormVersion.isDeleted) {
+          continue;
+        }
+        validForms.push(latestFormVersion);
+      } else {
+        validForms.push(forms[i]);
       }
     }
 
-    return forms;
+    return validForms;
   }
 
   async getFormTemplateById(formTemplateId: string) {
@@ -78,7 +83,7 @@ export class FormsService {
     }
 
     // root form templates
-    let forms = await this.formTemplateModel.find({
+    const forms = await this.formTemplateModel.find({
       rootFormTemplateId: null,
       parentFormTemplateId: null,
       versionNumber: 0,
@@ -87,33 +92,31 @@ export class FormsService {
       },
     });
 
+    const validForms = [];
+
     // replace root forms with the most recent version if it exists
-    let i = 0;
     for (const f of forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
         appointment.artistId,
         f.id,
       );
 
-      if (latestFormVersion && latestFormVersion?.services?.length) {
-        forms[i] = latestFormVersion;
-      } else {
-        if (!!latestFormVersion) {
-          //form version exist but has no service, do not replace with root form
-          forms[i] = null;
+      if (latestFormVersion) {
+        if (
+          latestFormVersion.isDeleted ||
+          latestFormVersion.services.length === 0
+        ) {
+          continue;
         }
-
-        //keep the root form since no version exists
+        validForms.push(latestFormVersion);
+      } else {
+        validForms.push(f);
       }
-
-      i++;
     }
-
-    forms = forms.filter((f) => f !== null);
 
     const metadata = paginationMetaGenerator(forms.length, 1, forms.length);
 
-    return { metadata, forms };
+    return { metadata, forms: validForms };
   }
 
   private async getLatestFormTemplateByArtist(
@@ -156,13 +159,17 @@ export class FormsService {
     artistId: string,
     formTemplateId: string,
     dto: NewFormVersionDto,
-    options?: { skipChangeDetection?: boolean; services?: number[] },
+    options?: {
+      skipChangeDetection?: boolean;
+      services?: number[];
+      isDeleted?: boolean;
+    },
   ) {
     const formToMod = await this.formTemplateModel.findOne({
       id: formTemplateId,
     });
 
-    if (!formToMod) {
+    if (!formToMod || formToMod.isDeleted) {
       throw new NotFoundException(
         `form template with id ${formTemplateId} not found`,
       );
@@ -206,6 +213,11 @@ export class FormsService {
       usesServicesArrayVersioning:
         latestFormToModTemplateVersion.usesServicesArrayVersioning,
     };
+
+    if (options && options.isDeleted) {
+      newTemplateDocBody.isDeleted = true;
+      newTemplateDocBody.deletedAt = new Date();
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _id: _, ...latestTemplateWithoutId } =
@@ -254,7 +266,7 @@ export class FormsService {
       id: formTemplateId,
     });
 
-    if (!formTemplate) {
+    if (!formTemplate || formTemplate.isDeleted) {
       throw new NotFoundException(
         `formTemplate with id ${formTemplateId} not found`,
       );
@@ -301,7 +313,7 @@ export class FormsService {
       id: formTemplateId,
     });
 
-    if (!formTemplate) {
+    if (!formTemplate || formTemplate.isDeleted) {
       throw new NotFoundException(
         `formTemplate with id ${formTemplateId} not found`,
       );
@@ -312,21 +324,33 @@ export class FormsService {
     }
 
     // transform dto.sections into an object with sectionId as key
+    const sectionsToAdd: UpdateCertainSectionsDto['sections'] = [];
+
     const sectionsToChangeMap = dto.sections.reduce(
-      (acc: { [key: string]: any }, section) => {
+      (
+        acc: { [key: string]: UpdateCertainSectionsDto['sections'][0] },
+        section,
+      ) => {
+        const sectionData: UpdateCertainSectionsDto['sections'][0]['data'] = [];
         if (section.id) {
+          for (const data of section.data) {
+            if (!data.skip) {
+              sectionData.push(data);
+            }
+          }
+          section.data = sectionData;
           acc[section.id] = section;
+        } else {
+          sectionsToAdd.push(section);
         }
         return acc;
       },
       {},
     );
 
-    const sectionsToAdd = dto.sections.filter(
-      (section) => !section.id,
-    ) as Section[];
+    // const sectionsToAdd = dto.sections.filter((section) => !section.id);
 
-    const sectionsForNewFormTemplate: Section[] = [];
+    const sectionsForNewFormTemplate: UpdateCertainSectionsDto['sections'] = [];
 
     // update sections in formTemplate.sections
     for (const i in formTemplate.sections) {
@@ -337,7 +361,10 @@ export class FormsService {
           // skip = true means the section should not be added to the new form template
           continue;
         }
-        formTemplate.sections[i] = sectionsToChangeMap[sectionId];
+        formTemplate.sections[i] = {
+          ...sectionsToChangeMap[sectionId],
+          id: sectionId,
+        };
         sectionsForNewFormTemplate.push(formTemplate.sections[i]);
       } else {
         sectionsForNewFormTemplate.push(formTemplate.toObject().sections[i]);
@@ -346,6 +373,13 @@ export class FormsService {
 
     // add new sections to the end of the array
     for (const section of sectionsToAdd) {
+      const sectionData: UpdateCertainSectionsDto['sections'][0]['data'] = [];
+      for (const data of section.data) {
+        if (!data.skip) {
+          sectionData.push(data);
+        }
+      }
+      section.data = sectionData;
       sectionsForNewFormTemplate.push({ id: randomUUID(), ...section });
     }
 
@@ -356,5 +390,37 @@ export class FormsService {
     );
 
     return newFormTemplate;
+  }
+
+  async deleteFormTemplate(formTemplateId: string, artistId: string) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+    });
+
+    if (!formTemplate || formTemplate.isDeleted) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to delete this form. `);
+    }
+
+    if (formTemplate.versionNumber > 0) {
+      formTemplate.isDeleted = true;
+      formTemplate.deletedAt = new Date();
+      await formTemplate.save();
+    } else {
+      // creating a new form template with the updated services
+      await this.createNewFormFromExistingTemplate(
+        artistId,
+        formTemplateId,
+        { sections: formTemplate.toObject().sections, formTemplateId },
+        { skipChangeDetection: true, isDeleted: true },
+      );
+    }
+
+    return { message: 'Form template deleted successfully' };
   }
 }

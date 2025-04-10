@@ -75,6 +75,12 @@ export class FormTemplate {
 
   @Prop()
   versionNumber: number;
+
+  @Prop({ default: false })
+  isDeleted: boolean;
+
+  @Prop()
+  deletedAt: Date;
 }
 
 export const FormTemplateSchema = SchemaFactory.createForClass(FormTemplate);
