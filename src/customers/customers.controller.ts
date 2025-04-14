@@ -96,13 +96,13 @@ export class CustomersController {
     @Param('customerId') customerId: string,
     @Body() dto: CreateCustomerNoteDto,
   ) {
-    const notes = await this.customerService.createCustomerNote(
+    const note = await this.customerService.createCustomerNote(
       artist.userId,
       customerId,
       dto,
     );
 
-    return { notes };
+    return { note };
   }
 
   @Roles(UserRole.ARTIST)
