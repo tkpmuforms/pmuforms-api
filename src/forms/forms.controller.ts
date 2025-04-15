@@ -128,4 +128,36 @@ export class FormsController {
 
     return { form };
   }
+
+  @Delete('/:templateId/sections/:sectionId')
+  async deleteSection(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionId') sectionId: string,
+  ) {
+    const form = await this.formsService.deleteSection(
+      artist.userId,
+      templateId,
+      sectionId,
+    );
+
+    return { form };
+  }
+
+  @Delete('/:templateId/sections/:sectionId/data/:dataId')
+  async deleteDataInSection(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionId') sectionId: string,
+    @Param('dataId') dataId: string,
+  ) {
+    const form = await this.formsService.deleteDataInASection(
+      artist.userId,
+      templateId,
+      sectionId,
+      dataId,
+    );
+
+    return { form };
+  }
 }
