@@ -10,6 +10,8 @@ import {
 } from 'class-validator';
 
 export * from './update-certain-sections.dto';
+export * from './update-section-data.dto';
+export * from './update-form-services.dto';
 
 export class NewFormVersionDto {
   @IsString()
