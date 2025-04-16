@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { AppConfigService } from 'src/config/config.service';
 import { UrlDocument, UserDocument } from 'src/database/schema';
 
@@ -77,15 +77,13 @@ export class UrlService {
       if (!user) {
         throw new NotFoundException('User not found');
       }
-      
+
       const doc = await this.urlModel.findOne({ url: longUrl });
 
       if (!doc?.shortUrl) {
-        await this.urlModel.updateOne(
-          {
-            shortUrl: longUrl,
-          },
-        );
+        await this.urlModel.updateOne({
+          shortUrl: longUrl,
+        });
       }
 
       return { shortUrl: doc?.url, longUrl: doc?.url };

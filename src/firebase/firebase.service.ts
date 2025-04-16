@@ -8,13 +8,13 @@ import { AppConfigService } from 'src/config/config.service';
 export class FirebaseService {
   constructor(private config: AppConfigService) {
     // initialize firebase admin
-    const firebaseSirverAccoutCred = this.config.get('FIREBASE_SERVICE_ACCOUNT_JSON');
+    const firebaseSirverAccoutCred = this.config.get(
+      'FIREBASE_SERVICE_ACCOUNT_JSON',
+    );
     try {
       const serviceAccount = JSON.parse(firebaseSirverAccoutCred);
       firebaseAdmin.initializeApp({
-        credential: firebaseAdmin.credential.cert(
-          serviceAccount,
-        ),
+        credential: firebaseAdmin.credential.cert(serviceAccount),
       });
     } catch (error: any) {
       console.info('Failed to initialize firebase admin.');
