@@ -40,7 +40,7 @@ export class CustomersService {
 
     const customers = await this.relationshipModel
       .find(queryObject)
-      .populate('customer')
+      .populate('customer', '-notes')
       .skip(skip)
       .limit(limit);
 
@@ -53,7 +53,7 @@ export class CustomersService {
         customerId,
         artistId,
       })
-      .populate('customer');
+      .populate('customer', '-notes');
 
     if (!relationship) {
       throw new ForbiddenException(
@@ -92,7 +92,11 @@ export class CustomersService {
     }
     const customer = await this.customerModel.findOne({ id: customerId });
 
-    return customer.notes ?? [];
+    const artistsNotesForCustomer = customer.notes?.filter((note) => {
+      return note.artistId === artistId;
+    });
+
+    return artistsNotesForCustomer ?? [];
   }
 
   async createCustomerNote(
@@ -122,6 +126,7 @@ export class CustomersService {
       imageUrl: dto.imageUrl,
       date: new Date(),
       note: dto.note,
+      artistId,
     };
 
     const existingNotes = customer.notes ?? [];
@@ -130,7 +135,7 @@ export class CustomersService {
 
     await customer.save();
 
-    return customer.notes;
+    return newNote;
   }
 
   async editCustomerNote(
@@ -162,6 +167,10 @@ export class CustomersService {
       throw new NotFoundException(`customer note with id ${noteId} not found`);
     }
 
+    if (customer.notes[noteIndex].artistId !== artistId) {
+      throw new ForbiddenException(`you are not authorized to edit this note`);
+    }
+
     if (dto?.imageUrl) {
       customer.notes[noteIndex].imageUrl = dto.imageUrl;
     }
@@ -172,7 +181,7 @@ export class CustomersService {
 
     await customer.save();
 
-    return customer.notes;
+    return customer.notes[noteIndex];
   }
 
   async deleteCustomerNote(
@@ -187,17 +196,27 @@ export class CustomersService {
 
     if (!relationship) {
       throw new ForbiddenException(
-        `there is no relationship between customer ${customerId}`,
+        `there is no relationship between you and customer ${customerId}`,
       );
     }
 
     const customer = await this.customerModel.findOne({ id: customerId });
 
-    customer.notes = customer.notes.filter((note) => note.id !== noteId);
+    const noteIndex = customer.notes.findIndex((note) => note.id === noteId);
+
+    if (noteIndex === -1) {
+      throw new NotFoundException(`customer note with id ${noteId} not found`);
+    }
+
+    if (customer.notes[noteIndex].artistId !== artistId) {
+      throw new ForbiddenException(`you are not authorized to edit this note`);
+    }
+
+    const deletedNote = customer.notes.splice(noteIndex, 1);
 
     await customer.save();
 
-    return customer.notes;
+    return deletedNote;
   }
 
   async searchMyCustomers(
@@ -317,6 +336,8 @@ export class CustomersService {
 
     customer.signature_url = url;
     await customer.save();
+
+    delete customer.notes;
 
     return customer;
   }

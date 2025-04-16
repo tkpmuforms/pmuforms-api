@@ -12,7 +12,11 @@ import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
-import { NewFormVersionDto, UpdateCertainSectionsDto } from './dto';
+import {
+  NewFormVersionDto,
+  UpdateCertainSectionsDto,
+  UpdateSectionDataDto,
+} from './dto';
 import { UpdateServicesDto } from 'src/services/dto';
 
 @Controller('api/forms')
@@ -52,7 +56,6 @@ export class FormsController {
   ) {
     const form = await this.formsService.createNewFormFromExistingTemplate(
       artist.userId,
-      dto.formTemplateId,
       dto,
     );
     return form;
@@ -80,6 +83,24 @@ export class FormsController {
     return { form };
   }
 
+  @Patch('/:templateId/sections/:sectionId/data/:dataId/update')
+  async updateDataInASeciton(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionId') sectionId: string,
+    @Param('dataId') dataId: string,
+    @Body() dto: UpdateSectionDataDto,
+  ) {
+    const form = await this.formsService.updateDataInASection(
+      artist.userId,
+      templateId,
+      sectionId,
+      dataId,
+      dto,
+    );
+
+    return { form };
+  }
   @Patch('/:templateId/update-sections')
   async updateCertainFormTemplateSections(
     @GetUser() artist: UserDocument,
@@ -103,6 +124,38 @@ export class FormsController {
     const form = await this.formsService.deleteFormTemplate(
       templateId,
       artist.userId,
+    );
+
+    return { form };
+  }
+
+  @Delete('/:templateId/sections/:sectionId')
+  async deleteSection(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionId') sectionId: string,
+  ) {
+    const form = await this.formsService.deleteSection(
+      artist.userId,
+      templateId,
+      sectionId,
+    );
+
+    return { form };
+  }
+
+  @Delete('/:templateId/sections/:sectionId/data/:dataId')
+  async deleteDataInSection(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionId') sectionId: string,
+    @Param('dataId') dataId: string,
+  ) {
+    const form = await this.formsService.deleteDataInASection(
+      artist.userId,
+      templateId,
+      sectionId,
+      dataId,
     );
 
     return { form };

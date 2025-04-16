@@ -12,7 +12,11 @@ import {
   Section,
   UserDocument,
 } from 'src/database/schema';
-import { NewFormVersionDto, UpdateCertainSectionsDto } from './dto';
+import {
+  NewFormVersionDto,
+  UpdateSectionDataDto,
+  UpdateCertainSectionsDto,
+} from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { createHash, randomUUID } from 'node:crypto';
 
@@ -157,7 +161,6 @@ export class FormsService {
 
   async createNewFormFromExistingTemplate(
     artistId: string,
-    formTemplateId: string,
     dto: NewFormVersionDto,
     options?: {
       skipChangeDetection?: boolean;
@@ -166,12 +169,12 @@ export class FormsService {
     },
   ) {
     const formToMod = await this.formTemplateModel.findOne({
-      id: formTemplateId,
+      id: dto.formTemplateId,
     });
 
     if (!formToMod || formToMod.isDeleted) {
       throw new NotFoundException(
-        `form template with id ${formTemplateId} not found`,
+        `form template with id ${dto.formTemplateId} not found`,
       );
     }
 
@@ -291,7 +294,6 @@ export class FormsService {
       // creating a new form template with the updated services
       const newFormTemplate = await this.createNewFormFromExistingTemplate(
         artistId,
-        formTemplateId,
         { sections: formTemplate.toObject().sections, formTemplateId },
         { skipChangeDetection: true, services: formServices },
       );
@@ -348,8 +350,6 @@ export class FormsService {
       {},
     );
 
-    // const sectionsToAdd = dto.sections.filter((section) => !section.id);
-
     const sectionsForNewFormTemplate: UpdateCertainSectionsDto['sections'] = [];
 
     // update sections in formTemplate.sections
@@ -385,7 +385,6 @@ export class FormsService {
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(
       artistId,
-      formTemplateId,
       { sections: sectionsForNewFormTemplate, formTemplateId },
     );
 
@@ -415,12 +414,154 @@ export class FormsService {
       // creating a new form template with the updated services
       await this.createNewFormFromExistingTemplate(
         artistId,
-        formTemplateId,
         { sections: formTemplate.toObject().sections, formTemplateId },
         { skipChangeDetection: true, isDeleted: true },
       );
     }
 
     return { message: 'Form template deleted successfully' };
+  }
+
+  async updateDataInASection(
+    artistId: string,
+    formTemplateId: string,
+    sectionId: string,
+    dataId: string,
+    dto: UpdateSectionDataDto,
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+    });
+
+    if (!formTemplate || formTemplate.isDeleted) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to modify this form. `);
+    }
+
+    const sectionIndex = formTemplate.sections.findIndex(
+      (section) => section.id === sectionId,
+    );
+
+    if (sectionIndex === -1) {
+      throw new NotFoundException(
+        `section with id ${sectionId} not found in formTemplate with id ${formTemplateId}`,
+      );
+    }
+
+    const dataIndex = formTemplate.sections[sectionIndex].data.findIndex(
+      (data) => data.id === dataId,
+    );
+
+    if (dataIndex === -1) {
+      throw new NotFoundException(
+        `data with id ${dataId} not found in section with id ${sectionId} in formTemplate with id ${formTemplateId}`,
+      );
+    }
+
+    formTemplate.sections[sectionIndex].data[dataIndex] = {
+      id: dataId,
+      ...dto,
+    };
+
+    const newFormTemplate = await this.createNewFormFromExistingTemplate(
+      artistId,
+      { sections: formTemplate.toObject().sections, formTemplateId },
+    );
+
+    return newFormTemplate;
+  }
+
+  async deleteSection(
+    artistId: string,
+    formTemplateId: string,
+    sectionId: string,
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+    });
+
+    if (!formTemplate || formTemplate.isDeleted) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to modify this form. `);
+    }
+
+    const sectionIndex = formTemplate.sections.findIndex(
+      (section) => section.id === sectionId,
+    );
+
+    if (sectionIndex === -1) {
+      throw new NotFoundException(
+        `section with id ${sectionId} not found in formTemplate with id ${formTemplateId}`,
+      );
+    }
+
+    formTemplate.sections.splice(sectionIndex, 1);
+
+    const newFormTemplate = await this.createNewFormFromExistingTemplate(
+      artistId,
+      { sections: formTemplate.toObject().sections, formTemplateId },
+    );
+
+    return newFormTemplate;
+  }
+
+  async deleteDataInASection(
+    artistId: string,
+    formTemplateId: string,
+    sectionId: string,
+    dataId: string,
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+    });
+
+    if (!formTemplate || formTemplate.isDeleted) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to modify this form. `);
+    }
+
+    const sectionIndex = formTemplate.sections.findIndex(
+      (section) => section.id === sectionId,
+    );
+
+    if (sectionIndex === -1) {
+      throw new NotFoundException(
+        `section with id ${sectionId} not found in formTemplate with id ${formTemplateId}`,
+      );
+    }
+
+    const dataIndex = formTemplate.sections[sectionIndex].data.findIndex(
+      (data) => data.id === dataId,
+    );
+
+    if (dataIndex === -1) {
+      throw new NotFoundException(
+        `data with id ${dataId} not found in section with id ${sectionId} in formTemplate with id ${formTemplateId}`,
+      );
+    }
+
+    formTemplate.sections[sectionIndex].data.splice(dataIndex, 1);
+
+    const newFormTemplate = await this.createNewFormFromExistingTemplate(
+      artistId,
+      { sections: formTemplate.toObject().sections, formTemplateId },
+    );
+
+    return newFormTemplate;
   }
 }

@@ -115,11 +115,16 @@ export class AppointmentsController {
 
   @Delete('/:appointmentId')
   async deleteAppointment(
-    @GetUser() customer: CustomerDocument,
+    @GetUser() user: CustomerDocument | UserDocument,
+    @GetCurrentUserRole() userRole: UserRole,
     @Param('appointmentId') appointmentId: string,
   ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
     const appointment = await this.appointmentsService.deleteAppointment(
-      customer.id,
+      userId,
       appointmentId,
     );
 

@@ -177,7 +177,7 @@ export class AppointmentsService {
     return { metadata, appointments };
   }
 
-  async deleteAppointment(customerId: string, appointmentId: string) {
+  async deleteAppointment(userId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
@@ -188,9 +188,9 @@ export class AppointmentsService {
       );
     }
 
-    if (appointment.customerId !== customerId) {
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
       throw new ForbiddenException(
-        `You are not allowed to delete this appointment`,
+        `You are not allowed to perform this action`,
       );
     }
 

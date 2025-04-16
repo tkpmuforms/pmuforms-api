@@ -66,6 +66,9 @@ export class Note {
 
   @Prop({ required: true })
   note: string;
+
+  @Prop()
+  artistId: string;
 }
 
 export const NoteSchema = SchemaFactory.createForClass(Note);
