@@ -3,7 +3,7 @@ import { HydratedDocument } from 'mongoose';
 
 export type FormTemplateDocument = HydratedDocument<FormTemplate>;
 
-@Schema()
+@Schema({ _id: false })
 export class SectionData {
   @Prop()
   id: string;
@@ -21,7 +21,7 @@ export class SectionData {
   required?: boolean;
 }
 
-@Schema()
+@Schema({ _id: false })
 export class Section {
   @Prop()
   id: string;

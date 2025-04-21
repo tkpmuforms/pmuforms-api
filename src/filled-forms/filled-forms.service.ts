@@ -12,7 +12,6 @@ import {
   AppointmentDocument,
   FilledFormDocument,
   FormTemplateDocument,
-  UserDocument,
 } from 'src/database/schema';
 import {
   // FilledFormEvent,
@@ -34,7 +33,6 @@ export class FilledFormsService {
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
     @InjectModel('users')
-    private artistModel: Model<UserDocument>,
     private eventEmitter: EventEmitter2,
     private formsService: FormsService,
     private utilsService: UtilsService,
