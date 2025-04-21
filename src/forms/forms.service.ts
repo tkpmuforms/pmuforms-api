@@ -16,9 +16,13 @@ import {
   NewFormVersionDto,
   UpdateSectionDataDto,
   UpdateCertainSectionsDto,
+  AddSectionDataDto,
 } from './dto';
 import { paginationMetaGenerator } from 'src/utils';
 import { createHash, randomUUID } from 'node:crypto';
+import { OnEvent } from '@nestjs/event-emitter';
+import { FormTemplateDeletedEvent } from './forms.events';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class FormsService {
@@ -27,6 +31,9 @@ export class FormsService {
     private formTemplateModel: Model<FormTemplateDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
+    @InjectModel('users')
+    private artistModel: Model<UserDocument>,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async getRootFormTemplates() {
@@ -46,7 +53,7 @@ export class FormsService {
       parentFormTemplateId: null,
       versionNumber: 0,
     });
-    const validForms = [];
+    const validForms: FormTemplateDocument[] = [];
     for (const i in forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
         artist.userId,
@@ -419,6 +426,11 @@ export class FormsService {
       );
     }
 
+    this.eventEmitter.emit(
+      'form-template.deleted',
+      new FormTemplateDeletedEvent({ artistId }),
+    );
+
     return { message: 'Form template deleted successfully' };
   }
 
@@ -467,6 +479,46 @@ export class FormsService {
       id: dataId,
       ...dto,
     };
+
+    const newFormTemplate = await this.createNewFormFromExistingTemplate(
+      artistId,
+      { sections: formTemplate.toObject().sections, formTemplateId },
+    );
+
+    return newFormTemplate;
+  }
+
+  async addNewDataInASection(
+    artistId: string,
+    formTemplateId: string,
+    sectionId: string,
+    dto: AddSectionDataDto,
+  ) {
+    const formTemplate = await this.formTemplateModel.findOne({
+      id: formTemplateId,
+    });
+
+    if (!formTemplate || formTemplate.isDeleted) {
+      throw new NotFoundException(
+        `formTemplate with id ${formTemplateId} not found`,
+      );
+    }
+
+    if (formTemplate.artistId && artistId !== formTemplate.artistId) {
+      throw new ForbiddenException(`You are not allowed to modify this form. `);
+    }
+
+    const sectionIndex = formTemplate.sections.findIndex(
+      (section) => section.id === sectionId,
+    );
+
+    if (sectionIndex === -1) {
+      throw new NotFoundException(
+        `section with id ${sectionId} not found in formTemplate with id ${formTemplateId}`,
+      );
+    }
+
+    formTemplate.sections[sectionIndex].data.push({ ...dto, id: randomUUID() });
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(
       artistId,
@@ -563,5 +615,53 @@ export class FormsService {
     );
 
     return newFormTemplate;
+  }
+
+  @OnEvent('form-template.deleted', { async: true })
+  async handleFilledFormSubmittedEvent(event: FormTemplateDeletedEvent) {
+    /* checks if there are services the artists offers with no valid forms and removes it from the artist's services */
+    try {
+      const { artistId } = event.payload;
+
+      const artist = await this.artistModel.findOne({ id: artistId });
+      if (!artist) {
+        return;
+      }
+
+      const servicesToFormCountMap = artist.services.reduce(
+        (acc: { [key: string]: number }, service) => {
+          acc[service.id.toString()] = 0;
+          return acc;
+        },
+        {},
+      );
+
+      const artistsFormTemplates = await this.getArtistFormTemplates(artist);
+
+      for (const formTemplate of artistsFormTemplates) {
+        for (const serviceId of formTemplate.services) {
+          if (serviceId.toString() in servicesToFormCountMap) {
+            servicesToFormCountMap[serviceId.toString()] += 1;
+          }
+        }
+      }
+
+      /* No valid form exists for these services */
+      const servicesToRemove = Object.keys(servicesToFormCountMap).filter(
+        (serviceId) => servicesToFormCountMap[serviceId] === 0,
+      );
+
+      if (servicesToRemove.length > 0) {
+        const newArtistsServices = artist.services.filter(
+          (service) => !servicesToRemove.includes(service.id.toString()),
+        );
+        artist.services = newArtistsServices;
+        await artist.save();
+      }
+    } catch {
+      console.log('error in form-template.deleted event', {
+        payload: event.payload,
+      });
+    }
   }
 }
