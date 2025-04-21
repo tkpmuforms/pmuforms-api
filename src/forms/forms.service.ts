@@ -623,7 +623,7 @@ export class FormsService {
     try {
       const { artistId } = event.payload;
 
-      const artist = await this.artistModel.findOne({ id: artistId });
+      const artist = await this.artistModel.findOne({ userId: artistId });
       if (!artist) {
         return;
       }
