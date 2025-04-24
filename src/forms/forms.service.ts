@@ -27,13 +27,13 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 @Injectable()
 export class FormsService {
   constructor(
+    private eventEmitter: EventEmitter2,
     @InjectModel('form-templates')
     private formTemplateModel: Model<FormTemplateDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
     @InjectModel('users')
     private artistModel: Model<UserDocument>,
-    private eventEmitter: EventEmitter2,
   ) {}
 
   async getRootFormTemplates() {

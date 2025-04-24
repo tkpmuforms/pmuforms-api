@@ -7,32 +7,33 @@ import { AppConfigService } from 'src/config/config.service';
 @Injectable()
 export class FirebaseService {
   constructor(private config: AppConfigService) {
-    // initialize firebase admin
-    const firebaseSirverAccoutCred = this.config.get(
-      'FIREBASE_SERVICE_ACCOUNT_JSON',
-    );
     try {
-      const serviceAccount = JSON.parse(firebaseSirverAccoutCred);
-      firebaseAdmin.initializeApp({
-        credential: firebaseAdmin.credential.cert(serviceAccount),
-      });
+      if (!firebaseAdmin.apps.length) {
+        // initialize firebase admin
+        const firebaseSirverAccoutCred = this.config.get(
+          'FIREBASE_SERVICE_ACCOUNT_JSON',
+        );
+        const serviceAccount = JSON.parse(firebaseSirverAccoutCred);
+        firebaseAdmin.initializeApp({
+          credential: firebaseAdmin.credential.cert(serviceAccount),
+        });
+      }
     } catch (error: any) {
       console.info('Failed to initialize firebase admin.');
       console.error({ error });
+      throw error;
     }
   }
 
   async verifyIdToken(idToken: string) {
-    {
-      try {
-        const decodedToken = await getAuth().verifyIdToken(idToken);
-        return decodedToken;
-      } catch (error) {
-        if (error.code === 'auth/id-token-expired') {
-          throw new UnauthorizedException(error.message);
-        }
-        throw new UnauthorizedException('Cannot validate login');
+    try {
+      const decodedToken = await getAuth().verifyIdToken(idToken);
+      return decodedToken;
+    } catch (error) {
+      if (error.code === 'auth/id-token-expired') {
+        throw new UnauthorizedException(error.message);
       }
+      throw new UnauthorizedException('Cannot validate login');
     }
   }
 

@@ -7,34 +7,26 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { OnEvent } from '@nestjs/event-emitter';
 import {
   AppointmentDocument,
   FilledFormDocument,
   FormTemplateDocument,
 } from 'src/database/schema';
-import {
-  // FilledFormEvent,
-  FilledFormSubmittedEvent,
-} from 'src/filled-forms/filled-forms.event';
-import { FormsService } from 'src/forms/forms.service';
+
 import { FilledFormStatus } from 'src/enums';
-import { randomUUID } from 'node:crypto';
 import { paginationMetaGenerator } from 'src/utils';
 import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class FilledFormsService {
   constructor(
+    private eventEmitter: EventEmitter2,
     @InjectModel('filled-forms')
     private filledFormModel: Model<FilledFormDocument>,
     @InjectModel('form-templates')
     private formTemplateModel: Model<FormTemplateDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
-    @InjectModel('users')
-    private eventEmitter: EventEmitter2,
-    private formsService: FormsService,
     private utilsService: UtilsService,
   ) {}
 
@@ -81,43 +73,19 @@ export class FilledFormsService {
       );
     }
 
-    const { forms: formsForAppointment } =
-      await this.formsService.getFormTemplatesForAppointment(appointment.id);
-
-    const formIsForAppointment = formsForAppointment.find(
-      (template) => template.id === formTemplate.id,
-    );
-
-    if (!formIsForAppointment) {
-      throw new BadRequestException(
-        `form template with id ${formTemplate.id} is not among the forms for this appointment`,
-      );
-    }
-
-    let filledForm: FilledFormDocument;
-
-    filledForm = await this.filledFormModel.findOne({
+    const filledForm = await this.filledFormModel.findOne({
       appointmentId: appointment.id,
       clientId: customerId,
       formTemplateId: formTemplate.id,
     });
 
-    if (filledForm) {
-      // form has already been filled by the customer for this appointment
-      // update form data
-      filledForm.data = formData;
-    } else {
-      // submit the form
-      filledForm = new this.filledFormModel({
-        id: randomUUID(),
-        appointmentId: appointment.id,
-        clientId: customerId,
-        formTemplateId: formTemplate.id,
-        data: formData,
-        title: formTemplate.title,
-      });
+    if (!filledForm) {
+      throw new NotFoundException(
+        `form with id ${formTemplateId} not found for this appointment`,
+      );
     }
 
+    filledForm.data = formData;
     // check if all required fields are completed
     const requiredFields = new Set<string>();
 
@@ -147,11 +115,7 @@ export class FilledFormsService {
 
     await filledForm.save();
 
-    // checks if customer has submitted all forms for this appointment
-    this.eventEmitter.emit(
-      'filled-form.submitted',
-      new FilledFormSubmittedEvent({ appointment, formTemplate }),
-    );
+    await this.handleFilledFormSubmittedEvent({ appointment });
 
     return filledForm;
   }
@@ -220,38 +184,32 @@ export class FilledFormsService {
   /*
     This function checks if all forms are filled and updates the appointment doc if true
   */
-  @OnEvent('filled-form.submitted', { async: true })
-  async handleFilledFormSubmittedEvent(event: FilledFormSubmittedEvent) {
+  private async handleFilledFormSubmittedEvent(payload: {
+    appointment: AppointmentDocument;
+  }) {
     try {
-      const { appointment } = event.payload;
-
-      // check all forms for this appointment
-      const { forms } = await this.formsService.getFormTemplatesForAppointment(
-        appointment.id,
-      );
+      const { appointment } = payload;
 
       // check forms submitted of this appointment
-      const submittedForms = await this.filledFormModel.find({
+      const filledForms = await this.filledFormModel.find({
         appointmentId: appointment.id,
       });
 
-      if (submittedForms.length >= forms.length) {
-        // check all form status of every submitted form
-        let completedStatus = true;
+      // check all form status of every submitted form
+      let completedStatus = true;
 
-        for (const submittedForm of submittedForms) {
-          completedStatus =
-            completedStatus &&
-            submittedForm.status === FilledFormStatus.COMPLETED;
-          if (!completedStatus) {
-            // early return
-            break;
-          }
+      for (const filledForm of filledForms) {
+        completedStatus =
+          completedStatus && filledForm.status === FilledFormStatus.COMPLETED;
+        if (!completedStatus) {
+          // early return
+          break;
         }
-
-        appointment.allFormsCompleted = completedStatus;
-        await appointment.save();
       }
+
+      appointment.allFormsCompleted = completedStatus;
+      await appointment.save();
+
       if (appointment.allFormsCompleted) {
         // notify user that all forms have been completed
         await this.notifyArtistAboutFormCompletion(appointment);
