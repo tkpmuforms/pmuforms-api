@@ -154,6 +154,7 @@ export class AppointmentsService {
         formTemplateId: forms[i].id,
         data: {},
         title: forms[i].title,
+        status: FilledFormStatus.INCOMPLETE,
       });
 
       await filledForm.save();
