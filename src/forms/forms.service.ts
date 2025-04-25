@@ -27,13 +27,13 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 @Injectable()
 export class FormsService {
   constructor(
+    private eventEmitter: EventEmitter2,
     @InjectModel('form-templates')
     private formTemplateModel: Model<FormTemplateDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
     @InjectModel('users')
     private artistModel: Model<UserDocument>,
-    private eventEmitter: EventEmitter2,
   ) {}
 
   async getRootFormTemplates() {
@@ -518,7 +518,32 @@ export class FormsService {
       );
     }
 
-    formTemplate.sections[sectionIndex].data.push({ ...dto, id: randomUUID() });
+    const after = dto.after;
+    delete dto.after;
+    const newQuestion = { ...dto, id: randomUUID() };
+    if (after) {
+      // findIndex of the data with id = after
+      const dataIndex = formTemplate.sections[sectionIndex].data.findIndex(
+        (data) => data.id === after,
+      );
+
+      if (dataIndex === -1) {
+        throw new NotFoundException(
+          `section[sectionId].data with id ${after} not found in section with id ${sectionId} in formTemplate with id ${formTemplateId}`,
+        );
+      }
+      // add new question after the data with id = after without changing or deleting the data with id = after
+      formTemplate.sections[sectionIndex].data.splice(
+        dataIndex + 1,
+        0,
+        newQuestion,
+      );
+    } else {
+      formTemplate.sections[sectionIndex].data = [
+        newQuestion,
+        ...formTemplate.sections[sectionIndex].data,
+      ];
+    }
 
     const newFormTemplate = await this.createNewFormFromExistingTemplate(
       artistId,

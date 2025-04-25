@@ -16,4 +16,8 @@ export class AddSectionDataDto {
   @IsOptional()
   @IsBoolean()
   required?: boolean;
+
+  @IsOptional()
+  @IsString()
+  after?: string;
 }

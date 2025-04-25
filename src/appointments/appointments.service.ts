@@ -145,6 +145,21 @@ export class AppointmentsService {
       appointment.id,
     );
 
+    // create filled forms for this appointment
+    for (const i in forms) {
+      const filledForm = new this.filledFormModel({
+        id: randomUUID(),
+        appointmentId: appointment.id,
+        clientId: customerId,
+        formTemplateId: forms[i].id,
+        data: {},
+        title: forms[i].title,
+        status: FilledFormStatus.INCOMPLETE,
+      });
+
+      await filledForm.save();
+    }
+
     appointment.formsToFillCount = forms.length;
     await appointment.save();
 

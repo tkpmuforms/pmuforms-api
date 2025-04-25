@@ -1,8 +1,7 @@
-import { AppointmentDocument, FormTemplateDocument } from 'src/database/schema';
+import { AppointmentDocument } from 'src/database/schema';
 
 type FilledFormSubmittedEventPayload = {
   appointment: AppointmentDocument;
-  formTemplate: FormTemplateDocument;
 };
 
 export class FilledFormSubmittedEvent {
