@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import firebaseAdmin from 'firebase-admin';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getAuth } from 'firebase-admin/auth';
@@ -54,6 +58,27 @@ export class FirebaseService {
       await getMessaging().send(message);
     } catch {
       console.error('Failed to send push notification');
+    }
+  }
+
+  async getUserById(uid: string) {
+    try {
+      const user = await firebaseAdmin.auth().getUser(uid);
+      return user;
+    } catch {
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
+
+  async generateEmailVerificationLink(email: string) {
+    try {
+      const link = await firebaseAdmin
+        .auth()
+        .generateEmailVerificationLink(email);
+      return link;
+    } catch (error) {
+      console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
     }
   }
 }
