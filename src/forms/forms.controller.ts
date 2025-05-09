@@ -13,6 +13,7 @@ import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { UserDocument } from 'src/database/schema';
 import {
+  AddSectionDataDto,
   NewFormVersionDto,
   UpdateCertainSectionsDto,
   UpdateSectionDataDto,
@@ -101,6 +102,7 @@ export class FormsController {
 
     return { form };
   }
+
   @Patch('/:templateId/update-sections')
   async updateCertainFormTemplateSections(
     @GetUser() artist: UserDocument,
@@ -124,6 +126,23 @@ export class FormsController {
     const form = await this.formsService.deleteFormTemplate(
       templateId,
       artist.userId,
+    );
+
+    return { form };
+  }
+
+  @Post('/:templateId/sections/:sectionId')
+  async addDataToSection(
+    @GetUser() artist: UserDocument,
+    @Param('templateId') templateId: string,
+    @Param('sectionId') sectionId: string,
+    @Body() dto: AddSectionDataDto,
+  ) {
+    const form = await this.formsService.addNewDataInASection(
+      artist.userId,
+      templateId,
+      sectionId,
+      dto,
     );
 
     return { form };

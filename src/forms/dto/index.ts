@@ -11,6 +11,7 @@ import {
 
 export * from './update-certain-sections.dto';
 export * from './update-section-data.dto';
+export * from './add-section-data.dto';
 export * from './update-form-services.dto';
 
 export class NewFormVersionDto {

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -14,6 +15,7 @@ import {
   RelationshipDocument,
 } from 'src/database/schema';
 import { UserRole } from 'src/enums';
+import { UtilsService } from 'src/utils/utils.service';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +27,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: AppConfigService,
     private firebaseService: FirebaseService,
+    private util: UtilsService,
   ) {}
 
   private async signToken(userId: string, role: UserRole, artistId?: string) {
@@ -112,11 +115,50 @@ export class AuthService {
     return { access_token, customer };
   }
 
+  private async sendEmailVerificationLink(email: string, link: string) {
+    const subject = 'Verify your email address for PMUForms';
+    const message = `
+    <h1>Welcome to PMUForms!</h1>
+    <p>To complete your registration, please verify your email address by clicking the link below:</p>
+    <p><a href="${link}">Verify Email</a></p>
+    <p>If you did not request this, please ignore this email.</p>
+    <p>&nbsp;</p>
+    <p>The PMUForms Team</p>
+  `;
+
+    await this.util.sendEmail({
+      to: email,
+      subject,
+      message,
+    });
+  }
+
   async me(userId: string) {
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  async sendEmailVerification(uid: string) {
+    const firebaseUser = await this.firebaseService.getUserById(uid);
+
+    if (!firebaseUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { email, emailVerified } = firebaseUser;
+
+    if (emailVerified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    const link =
+      await this.firebaseService.generateEmailVerificationLink(email);
+
+    await this.sendEmailVerificationLink(email, link);
+
+    return { message: 'Email Sent' };
   }
 }

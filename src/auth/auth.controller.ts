@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { CreateCustomerDto, CreateArtistDto } from './dto';
 import { AuthService } from './auth.service';
 import { GetUser, Public } from './decorator';
@@ -27,6 +27,13 @@ export class AuthController {
   @Post('/artist/create')
   async createUser(@Body() userDto: CreateArtistDto) {
     const user = await this.authService.createUser(userDto.accessToken);
+    return user;
+  }
+
+  @Public()
+  @Get('/send-email-verification/:uid')
+  async sendEmailVerification(@Param('uid') uid: string) {
+    const user = await this.authService.sendEmailVerification(uid);
     return user;
   }
 }
