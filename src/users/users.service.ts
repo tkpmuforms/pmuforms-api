@@ -41,14 +41,25 @@ export class UsersService {
     return artist;
   }
 
-  async getArtistShortUrl(artistId: string, businessUri: string) {
+  async getArtistShortUrl(artistId: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+    const { businessUri } = artist;
+
+    if (!businessUri) {
+      throw new NotFoundException(
+        `artist with id ${artistId} has no business uri`,
+      );
+    }
+
     const DOMAIN = this.config.get('CLIENT_BASE_URL');
     // https://www.pmuforms.com/business/[bussiness_name]/clients
+
     const url = `${DOMAIN}/business/${businessUri}/clients`;
-    const { shortUrl, longUrl } = await this.urlService.generateShortUrl(
-      url,
-      artistId,
-    );
+    const { shortUrl, longUrl } = await this.urlService.generateShortUrl(url);
 
     return { shortUrl, longUrl };
   }
