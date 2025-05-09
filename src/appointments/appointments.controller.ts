@@ -131,6 +131,7 @@ export class AppointmentsController {
     return { message: 'appointment deleted', appointment };
   }
 
+  @Roles(UserRole.ARTIST)
   @Get('/:appointmentId/sign')
   async signAppointment(
     @GetUser() artist: UserDocument,
