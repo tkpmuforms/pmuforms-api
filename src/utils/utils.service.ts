@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import nodemailer from 'nodemailer';
 import { AppConfigService } from 'src/config/config.service';
+import { UserDocument } from 'src/database/schema';
 import { FirebaseService } from 'src/firebase/firebase.service';
 
 type EmailOptions = {
@@ -13,9 +16,25 @@ type EmailOptions = {
 @Injectable()
 export class UtilsService {
   constructor(
+    @InjectModel('users')
+    private userModel: Model<UserDocument>,
     private config: AppConfigService,
     private firebaseService: FirebaseService,
   ) {}
+
+  async generateBusinessUri(businessName: string) {
+    let businessUri = businessName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    const businessUriExists = await this.userModel.findOne({
+      businessUri,
+    });
+
+    if (businessUriExists) {
+      businessUri = `${businessUri}-${Date.now()}}`;
+    }
+
+    return businessUri;
+  }
 
   private createMailTransporter() {
     const user = this.config.get('SMTP_USERNAME');

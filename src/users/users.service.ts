@@ -15,6 +15,7 @@ export class UsersService {
     private config: AppConfigService,
     private utilsService: UtilsService,
   ) {}
+
   async updateBusinessName(artistId: string, buinessName: string) {
     const artist = await this.userModel.findOne({ userId: artistId });
 
@@ -23,6 +24,8 @@ export class UsersService {
     }
 
     artist.businessName = buinessName;
+    artist.businessUri =
+      await this.utilsService.generateBusinessUri(buinessName);
     await artist.save();
 
     return artist;
