@@ -195,6 +195,7 @@ export class AppointmentsService {
   async deleteAppointment(userId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
+      deleted: false,
     });
 
     if (!appointment) {
@@ -207,6 +208,10 @@ export class AppointmentsService {
       throw new ForbiddenException(
         `You are not allowed to perform this action`,
       );
+    }
+
+    if (appointment.signed) {
+      throw new BadRequestException(`Appointment has already been signed`);
     }
 
     appointment.deleted = true;
