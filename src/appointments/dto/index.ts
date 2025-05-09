@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   Min,
 } from 'class-validator';
 
@@ -68,4 +69,11 @@ export class EditAppointmentDto {
   @Type(() => Number)
   @IsInt({ each: true })
   services: number[];
+}
+
+export class SignAppointmentDto {
+  @IsString()
+  @IsUrl()
+  @IsNotEmpty()
+  signatureUrl: string;
 }

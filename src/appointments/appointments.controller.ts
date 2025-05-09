@@ -14,6 +14,7 @@ import {
   BookAnApppointmentAsCustomerDto,
   EditAppointmentDto,
   PaginationParamsDto,
+  SignAppointmentDto,
 } from './dto';
 import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -132,14 +133,16 @@ export class AppointmentsController {
   }
 
   @Roles(UserRole.ARTIST)
-  @Get('/:appointmentId/sign')
+  @Post('/:appointmentId/sign')
   async signAppointment(
     @GetUser() artist: UserDocument,
     @Param('appointmentId') appointmentId: string,
+    @Body() dto: SignAppointmentDto,
   ) {
     const appointment = await this.appointmentsService.signAppointment(
       artist.userId,
       appointmentId,
+      dto.signatureUrl,
     );
 
     return { appointment };

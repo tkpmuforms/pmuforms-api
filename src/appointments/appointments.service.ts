@@ -232,7 +232,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  async signAppointment(artistId: string, appointmentId: string) {
+  async signAppointment(artistId: string, appointmentId: string, signatureUrl) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
@@ -269,6 +269,7 @@ export class AppointmentsService {
     }
 
     appointment.signed = true;
+    appointment.signature_url = signatureUrl;
 
     await appointment.save();
 
