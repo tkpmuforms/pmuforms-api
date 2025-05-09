@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -7,6 +15,7 @@ import {
   UpdateSignatureUrlDto,
   UpdateBusinessNameDto,
   UpdateFcmTokenDto,
+  SearchArtistDto,
   TestPushNotificationDto,
 } from './dto';
 
@@ -42,6 +51,13 @@ export class UsersController {
     return { artist: artistDoc };
   }
 
+  @Get('/search')
+  async searchArtistByName(@Query() query: SearchArtistDto) {
+    const artists = await this.usersService.searchArtistByName(query.name);
+
+    return { artists };
+  }
+
   /* FOR DEVELOPMENT PURPOSES ONLY */
   @Roles(UserRole.ARTIST)
   @Post('/test-push-notification')
@@ -55,7 +71,7 @@ export class UsersController {
 
   @Get('/:artistId')
   async getAnArtist(@Param('artistId') artistId: string) {
-    const artist = await this.usersService.getAnArtist(artistId);
+    const artist = await this.usersService.getAnArtistById(artistId);
 
     return { artist };
   }

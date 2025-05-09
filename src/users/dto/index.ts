@@ -27,3 +27,9 @@ export class TestPushNotificationDto {
   @IsNotEmpty()
   body: string;
 }
+
+export class SearchArtistDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+}

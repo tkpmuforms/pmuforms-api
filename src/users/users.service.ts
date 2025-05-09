@@ -31,8 +31,12 @@ export class UsersService {
     return artist;
   }
 
-  async getAnArtist(artistId: string) {
-    const artist = await this.userModel.findOne({ userId: artistId });
+  async getAnArtistById(artistId: string) {
+    // find by artistId or businessUri
+
+    const artist = await this.userModel.findOne({
+      $or: [{ userId: artistId }, { businessUri: artistId }],
+    });
 
     if (!artist) {
       throw new NotFoundException(`artist with id ${artistId} not found`);
@@ -101,5 +105,15 @@ export class UsersService {
     });
 
     return { message: 'success' };
+  }
+
+  async searchArtistByName(name: string) {
+    const artists = await this.userModel
+      .find({
+        businessName: { $regex: name, $options: 'i' },
+      })
+      .limit(10);
+
+    return artists;
   }
 }
