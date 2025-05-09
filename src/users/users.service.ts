@@ -41,9 +41,10 @@ export class UsersService {
     return artist;
   }
 
-  async getArtistShortUrl(artistId: string) {
+  async getArtistShortUrl(artistId: string, businessUri: string) {
     const DOMAIN = this.config.get('CLIENT_BASE_URL');
-    const url = `${DOMAIN}/#/${artistId}`;
+    // https://www.pmuforms.com/business/[bussiness_name]/clients
+    const url = `${DOMAIN}/business/${businessUri}/clients`;
     const { shortUrl, longUrl } = await this.urlService.generateShortUrl(
       url,
       artistId,
