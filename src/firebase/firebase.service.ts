@@ -31,6 +31,7 @@ export class FirebaseService {
         if (error.code === 'auth/id-token-expired') {
           throw new UnauthorizedException(error.message);
         }
+        console.log(error)
         throw new UnauthorizedException('Cannot validate login');
       }
     }
