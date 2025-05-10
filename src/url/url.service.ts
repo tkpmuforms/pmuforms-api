@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { Model } from 'mongoose';
@@ -70,20 +66,18 @@ export class UrlService {
     }
   }
 
-  async generateShortUrl(longUrl: string, artistId: string) {
+  async generateShortUrl(longUrl: string) {
     try {
-      const user = await this.userModel.findOne({ userId: artistId });
+      let doc = await this.urlModel.findOne({ url: longUrl });
 
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-
-      const doc = await this.urlModel.findOne({ url: longUrl });
-
-      if (!doc?.shortUrl) {
-        await this.urlModel.updateOne({
-          shortUrl: longUrl,
-        });
+      if (!doc) {
+        doc = await this.urlModel.findOneAndUpdate(
+          {
+            url: longUrl,
+          },
+          { shortUrl: longUrl },
+          { new: true, upsert: true },
+        );
       }
 
       return { shortUrl: doc?.url, longUrl: doc?.url };

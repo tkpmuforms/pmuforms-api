@@ -43,6 +43,9 @@ export class User {
   @Prop()
   businessName: string;
 
+  @Prop()
+  businessUri: string;
+
   @Prop({ type: [ServiceSchema] })
   services: Service[];
 

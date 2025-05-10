@@ -195,6 +195,7 @@ export class AppointmentsService {
   async deleteAppointment(userId: string, appointmentId: string) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
+      deleted: false,
     });
 
     if (!appointment) {
@@ -207,6 +208,10 @@ export class AppointmentsService {
       throw new ForbiddenException(
         `You are not allowed to perform this action`,
       );
+    }
+
+    if (appointment.signed) {
+      throw new BadRequestException(`Appointment has already been signed`);
     }
 
     appointment.deleted = true;
@@ -227,7 +232,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  async signAppointment(artistId: string, appointmentId: string) {
+  async signAppointment(artistId: string, appointmentId: string, signatureUrl) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });
@@ -264,6 +269,7 @@ export class AppointmentsService {
     }
 
     appointment.signed = true;
+    appointment.signature_url = signatureUrl;
 
     await appointment.save();
 

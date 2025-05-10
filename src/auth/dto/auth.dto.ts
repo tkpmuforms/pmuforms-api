@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCustomerDto {
   @IsString()
@@ -6,11 +6,18 @@ export class CreateCustomerDto {
   accessToken: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   artistId: string;
 }
+
 export class CreateArtistDto {
   @IsString()
   @IsNotEmpty()
   accessToken: string;
+}
+
+export class SwitchCustomerAuthContextDto {
+  @IsString()
+  @IsNotEmpty()
+  artistId: string;
 }

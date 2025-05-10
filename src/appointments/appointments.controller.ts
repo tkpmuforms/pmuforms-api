@@ -14,6 +14,7 @@ import {
   BookAnApppointmentAsCustomerDto,
   EditAppointmentDto,
   PaginationParamsDto,
+  SignAppointmentDto,
 } from './dto';
 import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
@@ -131,14 +132,17 @@ export class AppointmentsController {
     return { message: 'appointment deleted', appointment };
   }
 
-  @Get('/:appointmentId/sign')
+  @Roles(UserRole.ARTIST)
+  @Post('/:appointmentId/sign')
   async signAppointment(
     @GetUser() artist: UserDocument,
     @Param('appointmentId') appointmentId: string,
+    @Body() dto: SignAppointmentDto,
   ) {
     const appointment = await this.appointmentsService.signAppointment(
       artist.userId,
       appointmentId,
+      dto.signatureUrl,
     );
 
     return { appointment };
