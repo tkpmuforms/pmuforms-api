@@ -10,12 +10,12 @@ import {
 import { UsersService } from './users.service';
 import { GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
-import { UserDocument } from 'src/database/schema';
+import { CustomerDocument, UserDocument } from 'src/database/schema';
 import {
   UpdateSignatureUrlDto,
   UpdateBusinessNameDto,
   UpdateFcmTokenDto,
-  SearchArtistDto,
+  SearchMyArtistsQueryParamsDto,
   TestPushNotificationDto,
 } from './dto';
 
@@ -52,8 +52,14 @@ export class UsersController {
   }
 
   @Get('/search')
-  async searchArtistByName(@Query() query: SearchArtistDto) {
-    const artists = await this.usersService.searchArtistByName(query.name);
+  async searchArtistByName(
+    @GetUser() customer: CustomerDocument,
+    @Query() query: SearchMyArtistsQueryParamsDto,
+  ) {
+    const artists = await this.usersService.searchArtistByName(
+      customer.id,
+      query,
+    );
 
     return { artists };
   }
