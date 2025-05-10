@@ -65,7 +65,7 @@ export class UsersService {
 
     const DOMAIN = this.config.get('CLIENT_BASE_URL');
 
-    const url = `${DOMAIN}/${businessUri}/customer`;
+    const url = `${DOMAIN}/${businessUri}`;
     const { shortUrl, longUrl } = await this.urlService.generateShortUrl(url);
 
     return { shortUrl, longUrl };
