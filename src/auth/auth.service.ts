@@ -77,7 +77,7 @@ export class AuthService {
     return { access_token, artist };
   }
 
-  async createCustomer(accessToken: string, artistId: string) {
+  async createCustomer(accessToken: string, artistId?: string) {
     const auth = await this.firebaseService.verifyIdToken(accessToken);
 
     const { uid: customerId, email, name, email_verified } = auth;
@@ -86,10 +86,13 @@ export class AuthService {
       throw new UnauthorizedException('Email not verified');
     }
 
-    const artist = await this.userModel.findOne({ userId: artistId });
+    let artist: UserDocument | null = null;
+    if (artistId) {
+      artist = await this.userModel.findOne({ userId: artistId });
 
-    if (!artist) {
-      throw new UnauthorizedException(`No artist found with id ${artistId}`);
+      if (!artist) {
+        throw new UnauthorizedException(`No artist found with id ${artistId}`);
+      }
     }
 
     let customer = await this.customerModel.findOne({ id: customerId });
@@ -103,18 +106,50 @@ export class AuthService {
       });
     }
 
-    //create relationship
-    await this.relationshipModel.findOneAndUpdate(
-      { artistId: artist.userId, customerId: customer.id },
-      { artistId: artist.userId, customerId: customer.id },
-      { upsert: true },
-    );
+    if (artist) {
+      //create relationship
+      await this.relationshipModel.findOneAndUpdate(
+        { artistId: artist.userId, customerId: customer.id },
+        { artistId: artist.userId, customerId: customer.id },
+        { upsert: true },
+      );
+    }
 
     const access_token = await this.signToken(
       customer.id,
       UserRole.CUSTOMER,
       artistId,
     );
+
+    return { access_token, customer };
+  }
+
+  async switchCustomerAuthContext(customerId: string, artistId: string) {
+    const relationship = await this.relationshipModel.findOne({
+      artistId,
+      customerId,
+    });
+
+    if (!relationship) {
+      throw new UnauthorizedException(
+        `No relationship found between artist ${artistId} and customer ${customerId}`,
+      );
+    }
+
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new UnauthorizedException(`No artist found with id ${artistId}`);
+    }
+
+    const customer = await this.customerModel.findOne({ id: customerId });
+
+    const access_token = await this.signToken(
+      customer.id,
+      UserRole.CUSTOMER,
+      artistId,
+    );
+
     return { access_token, customer };
   }
 
