@@ -64,9 +64,8 @@ export class UsersService {
     }
 
     const DOMAIN = this.config.get('CLIENT_BASE_URL');
-    // https://www.pmuforms.com/business/[bussiness_name]/clients
 
-    const url = `${DOMAIN}/business/${businessUri}/clients`;
+    const url = `${DOMAIN}/${businessUri}/customer`;
     const { shortUrl, longUrl } = await this.urlService.generateShortUrl(url);
 
     return { shortUrl, longUrl };
