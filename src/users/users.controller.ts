@@ -56,12 +56,12 @@ export class UsersController {
     @GetUser() customer: CustomerDocument,
     @Query() query: SearchMyArtistsQueryParamsDto,
   ) {
-    const artists = await this.usersService.searchArtistByName(
+    const { metadata, artists } = await this.usersService.searchArtistByName(
       customer.id,
       query,
     );
 
-    return { artists };
+    return { metadata, artists };
   }
 
   /* FOR DEVELOPMENT PURPOSES ONLY */
