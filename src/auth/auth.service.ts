@@ -68,7 +68,7 @@ export class AuthService {
         email,
         businessName: name ?? 'New Business',
         businessUri: await this.util.generateBusinessUri(
-          `New Business ${Date.now}`,
+          `New Business ${Date.now()}`,
         ),
       });
     }
