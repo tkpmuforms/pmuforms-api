@@ -88,7 +88,9 @@ export class AuthService {
 
     let artist: UserDocument | null = null;
     if (artistId) {
-      artist = await this.userModel.findOne({ userId: artistId });
+      artist = await this.userModel.findOne({
+        $or: [{ userId: artistId }, { businessUri: artistId }],
+      });
 
       if (!artist) {
         throw new UnauthorizedException(`No artist found with id ${artistId}`);
