@@ -120,7 +120,7 @@ export class AuthService {
     const access_token = await this.signToken(
       customer.id,
       UserRole.CUSTOMER,
-      artistId,
+      artistId: artist.userId,
     );
 
     return { access_token, customer };
