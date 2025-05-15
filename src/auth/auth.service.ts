@@ -87,6 +87,7 @@ export class AuthService {
     }
 
     let artist: UserDocument | null = null;
+
     if (artistId) {
       artist = await this.userModel.findOne({
         $or: [{ userId: artistId }, { businessUri: artistId }],
@@ -120,7 +121,7 @@ export class AuthService {
     const access_token = await this.signToken(
       customer.id,
       UserRole.CUSTOMER,
-      artist.userId,
+      artist?.userId,
     );
 
     return { access_token, customer };
