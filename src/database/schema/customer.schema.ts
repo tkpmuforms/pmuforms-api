@@ -59,9 +59,6 @@ export class Note {
   id: string;
 
   @Prop()
-  date: Date; //might remove and use default timestamps
-
-  @Prop()
   imageUrl?: string;
 
   @Prop()

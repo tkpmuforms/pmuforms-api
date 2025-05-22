@@ -30,7 +30,7 @@ export class CreateCustomerNoteDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
+  @MaxLength(5000)
   note?: string;
 }
 
@@ -41,7 +41,7 @@ export class EditCustomerNoteDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
+  @MaxLength(5000)
   note?: string;
 }
 export class SearchMyCustomersQueryParamsDto {
