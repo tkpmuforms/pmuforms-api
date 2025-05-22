@@ -94,8 +94,10 @@ export class CustomersController {
   async createCustomerNote(
     @GetUser() artist: UserDocument,
     @Param('customerId') customerId: string,
-    @Body() dto: CreateCustomerNoteDto,
+    @Body() dto: any//CreateCustomerNoteDto,
   ) {
+    console.log(JSON.stringify(dto));
+    
     const note = await this.customerService.createCustomerNote(
       artist.userId,
       customerId,
@@ -111,8 +113,10 @@ export class CustomersController {
     @GetUser() artist: UserDocument,
     @Param('customerId') customerId: string,
     @Param('noteId') noteId: string,
-    @Body() dto: EditCustomerNoteDto,
+    @Body() dto: any//EditCustomerNoteDto,
   ) {
+    console.log(JSON.stringify(dto));
+
     const notes = await this.customerService.editCustomerNote(
       artist.userId,
       customerId,
