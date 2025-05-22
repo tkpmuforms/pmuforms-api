@@ -25,12 +25,18 @@ export class UtilsService {
   async generateBusinessUri(businessName: string) {
     let businessUri = businessName.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
+    // remove leading and trailing hyphens
+    businessUri = businessUri.replace(/^-+|-+$/g, '');
+
+    // remove multiple consecutive hyphens
+    businessUri = businessUri.replace(/-+/g, '-');
+
     const businessUriExists = await this.userModel.findOne({
       businessUri,
     });
 
     if (businessUriExists) {
-      businessUri = `${businessUri}-${Date.now()}}`;
+      businessUri = `${businessUri}-${Date.now()}`;
     }
 
     return businessUri;
