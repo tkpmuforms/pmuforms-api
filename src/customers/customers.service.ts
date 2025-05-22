@@ -123,12 +123,16 @@ export class CustomersService {
 
     const newNote = {
       id: randomUUID(),
-      imageUrl: dto.imageUrl,
+      imageUrl: dto?.imageUrl || '',
       date: new Date(),
-      note: dto.note,
+      note: dto?.note || '',
       artistId,
     };
 
+    if (!newNote.note && !newNote.imageUrl) {
+      return newNote;
+    }
+    
     const existingNotes = customer.notes ?? [];
 
     customer.notes = [newNote, ...existingNotes];

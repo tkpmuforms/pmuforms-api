@@ -28,10 +28,10 @@ export class CreateCustomerNoteDto {
   @IsString()
   imageUrl?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MaxLength(500)
-  note: string;
+  @MaxLength(1000)
+  note?: string;
 }
 
 export class EditCustomerNoteDto {
@@ -41,7 +41,7 @@ export class EditCustomerNoteDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(500)
+  @MaxLength(1000)
   note?: string;
 }
 export class SearchMyCustomersQueryParamsDto {

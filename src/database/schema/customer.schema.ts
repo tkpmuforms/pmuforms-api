@@ -64,8 +64,8 @@ export class Note {
   @Prop()
   imageUrl?: string;
 
-  @Prop({ required: true })
-  note: string;
+  @Prop()
+  note?: string;
 
   @Prop()
   artistId: string;
