@@ -123,7 +123,8 @@ export class CustomersService {
 
     const newNote = {
       id: randomUUID(),
-      imageUrl: dto?.imageUrl || '',
+      imageUrl: dto?.imageUrl || undefined,
+      date: new Date(),
       note: dto?.note || '',
       artistId,
     };
