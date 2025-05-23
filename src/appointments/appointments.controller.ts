@@ -107,9 +107,18 @@ export class AppointmentsController {
   }
 
   @Get('/:appointmentId')
-  async getAppointment(@Param('appointmentId') appointmentId: string) {
-    const appointment =
-      await this.appointmentsService.getAppointment(appointmentId);
+  async getAppointment(
+    @GetUser() user: CustomerDocument | UserDocument,
+    @Param('appointmentId') appointmentId: string,
+  ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
+    const appointment = await this.appointmentsService.getAppointment(
+      userId,
+      appointmentId,
+    );
 
     return { appointment };
   }
