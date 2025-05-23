@@ -59,6 +59,9 @@ export class Note {
   id: string;
 
   @Prop()
+  date: Date;
+
+  @Prop()
   imageUrl?: string;
 
   @Prop()

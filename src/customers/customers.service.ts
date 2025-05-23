@@ -183,6 +183,8 @@ export class CustomersService {
       customer.notes[noteIndex].note = dto.note;
     }
 
+    customer.notes[noteIndex].date = new Date()
+
     await customer.save();
 
     return customer.notes[noteIndex];
