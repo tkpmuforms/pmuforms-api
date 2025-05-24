@@ -44,7 +44,11 @@ export class CustomersService {
       .skip(skip)
       .limit(limit);
 
-    return { metadata, customers };
+      const sortedCustomers = customers.sort((a, b) =>
+        a.customer.name.localeCompare(b.customer.name)
+      );
+    
+    return { metadata, customers: sortedCustomers };
   }
 
   async getCustomer(artistId: string, customerId: string) {
