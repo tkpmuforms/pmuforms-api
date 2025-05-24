@@ -267,6 +267,11 @@ export class CustomersService {
         },
       },
       {
+        $sort: {
+          'customer.name': 1, // ascending alphabetical order
+        },
+      },
+      {
         $facet: {
           data: [
             {
