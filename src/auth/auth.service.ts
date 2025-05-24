@@ -69,6 +69,7 @@ export class AuthService {
         businessName: name ?? 'New Business',
         businessUri: await this.util.generateBusinessUri(
           `New Business ${Date.now()}`,
+          artistId
         ),
       });
     }
