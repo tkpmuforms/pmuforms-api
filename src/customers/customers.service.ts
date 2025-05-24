@@ -267,11 +267,6 @@ export class CustomersService {
         },
       },
       {
-        $sort: {
-          'customer.name': 1, // ascending alphabetical order
-        },
-      },
-      {
         $facet: {
           data: [
             {
@@ -297,10 +292,14 @@ export class CustomersService {
 
     const result = await this.relationshipModel.aggregate(pipeline);
     const docCount = result[0].aggregation[0]?.count || 0;
-    const customers: CustomerDocument[] = result[0].data;
+    const customers: any[] = result[0].data;
     const metadata = paginationMetaGenerator(docCount, page, limit);
 
-    return { metadata, customers };
+    const sortedCustomers = customers.sort((a, b) =>
+      a.customer.name.localeCompare(b.customer.name)
+    );
+    
+    return { metadata, customers: sortedCustomers };
   }
 
   async updatePersonalDetails(
