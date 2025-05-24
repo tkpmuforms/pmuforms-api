@@ -295,10 +295,10 @@ export class CustomersService {
     const customers: any[] = result[0].data;
     const metadata = paginationMetaGenerator(docCount, page, limit);
 
-    const sortedCustomers = customers.sort((a, b) =>
-      a.customer.name.localeCompare(b.customer.name)
-    );
-    
+    const sortedCustomers = customers.length ? customers.sort((a, b) =>
+      a?.customer?.name.localeCompare(b?.customer?.name)
+    ) : [];
+
     return { metadata, customers: sortedCustomers };
   }
 
