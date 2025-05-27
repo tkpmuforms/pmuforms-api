@@ -29,6 +29,9 @@ export const configSchema = z.object({
   CONTACT_US_EMAIL: z.string(),
 
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
+
+  REVENUECAT_API_KEY: z.string(),
+  REVENUECAT_WEBHOOK_SECRET: z.string(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
