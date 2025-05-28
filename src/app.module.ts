@@ -19,6 +19,7 @@ import { MessagesModule } from './messages/messages.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UtilsModule } from './utils/utils.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { SubscriptionGuard } from './subscription/subscription.guard';
 
 @Module({
   imports: [
@@ -56,6 +57,10 @@ import { SubscriptionModule } from './subscription/subscription.module';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SubscriptionGuard,
     },
   ],
 })
