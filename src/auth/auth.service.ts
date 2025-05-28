@@ -68,8 +68,8 @@ export class AuthService {
         email,
         businessName: name ?? 'New Business',
         businessUri: await this.util.generateBusinessUri(
-          `New Business ${Date.now()}`,
-          artistId
+          name ?? `New Business ${Date.now()}`,
+          artistId,
         ),
       });
     }
@@ -95,7 +95,9 @@ export class AuthService {
       });
 
       if (!artist) {
-        throw new UnauthorizedException(`No artist found with id ${artistId}`);
+        throw new UnauthorizedException(
+          `Invalid form link, request a new link from your artist.`,
+        );
       }
     }
 

@@ -23,14 +23,17 @@ export class UtilsService {
   ) {}
 
   async generateBusinessUri(businessName: string, userId: string) {
-    let businessUri = businessName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
+    let businessUri = businessName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-');
 
     // remove leading and trailing hyphens
     businessUri = businessUri.replace(/^-+|-+$/g, '');
 
     // remove multiple consecutive hyphens
     businessUri = businessUri.replace(/-+/g, '-');
-    
+
     const businessUriExists = await this.userModel.findOne({
       userId: { $ne: userId },
       businessUri,
