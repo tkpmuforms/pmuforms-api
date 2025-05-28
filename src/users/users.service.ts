@@ -28,8 +28,10 @@ export class UsersService {
     }
 
     artist.businessName = buinessName;
-    artist.businessUri =
-    await this.utilsService.generateBusinessUri(buinessName, artistId);
+    artist.businessUri = await this.utilsService.generateBusinessUri(
+      buinessName,
+      artistId,
+    );
     await artist.save();
 
     return artist;
