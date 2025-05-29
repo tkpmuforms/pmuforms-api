@@ -8,6 +8,7 @@ import {
 } from './subscription.types';
 import axios from 'axios';
 import { AppConfigService } from 'src/config/config.service';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class SubscriptionService {
@@ -32,12 +33,15 @@ export class SubscriptionService {
 
   private async updateSubscriptionStatus(userId: string) {
     const { subscriber } = await this.getUserSubcriptionInfo(userId);
+    let isActive = false;
 
-    const isActive = subscriber.entitlements;
+    Object.values(subscriber.entitlements).forEach((entitlement) => {
+      isActive ||= DateTime.fromISO(entitlement.expires_date) > DateTime.now();
+    });
 
     await this.userModel.updateOne(
       { userId },
-      { appStorePurchaseActive: !!isActive },
+      { appStorePurchaseActive: isActive },
     );
   }
 

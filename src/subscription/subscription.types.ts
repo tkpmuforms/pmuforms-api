@@ -62,7 +62,8 @@ export interface Subscriber {
 }
 
 export interface Entitlements {
-  pro_cat: ProCat;
+  monthly_full_access: ProCat;
+  'pmu.forms.yearly': ProCat;
 }
 
 export interface ProCat {
