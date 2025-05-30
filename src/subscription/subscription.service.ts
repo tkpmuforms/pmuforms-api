@@ -12,7 +12,7 @@ import { DateTime } from 'luxon';
 
 @Injectable()
 export class SubscriptionService {
-  private REVENUECAT_API_URL = 'https://api.revenuecat.com/v2';
+  private REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
   private REVENUECAT_API_KEY: string;
 
   constructor(
@@ -35,9 +35,15 @@ export class SubscriptionService {
     const { subscriber } = await this.getUserSubcriptionInfo(userId);
     let isActive = false;
 
-    Object.values(subscriber.entitlements).forEach((entitlement) => {
-      isActive ||= DateTime.fromISO(entitlement.expires_date) > DateTime.now();
-    });
+    // const sandboxAllowed = this.configService.get('NODE_ENV') !== 'production';
+
+    console.log(subscriber);
+
+    if (subscriber.entitlements?.pro) {
+      isActive ||=
+        DateTime.fromISO(subscriber.entitlements.pro.expires_date) >
+        DateTime.now();
+    }
 
     await this.userModel.updateOne(
       { userId },
@@ -59,7 +65,11 @@ export class SubscriptionService {
   }
 
   async handleRevenueCatSubscription(payload: RevCatWebhookPayload) {
-    const { app_user_id: userId } = payload.event;
+    const { app_user_id: userId, app_id } = payload.event;
+
+    if (app_id !== this.configService.get('REVENUECAT_APP_ID')) {
+      return { message: 'done' };
+    }
 
     await this.updateSubscriptionStatus(userId);
 

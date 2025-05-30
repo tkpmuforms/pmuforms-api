@@ -7,6 +7,10 @@ export const configSchema = z.object({
     .default('3333'),
   API_URL: z.string().url(),
 
+  NODE_ENV: z
+    .enum(['development', 'production', 'test', 'staging'])
+    .default('development'),
+
   //DB
   MONGO_URI: z.string(),
 
@@ -30,6 +34,7 @@ export const configSchema = z.object({
 
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
 
+  REVENUECAT_APP_ID: z.string(),
   REVENUECAT_API_KEY: z.string(),
   REVENUECAT_WEBHOOK_SECRET: z.string(),
 });

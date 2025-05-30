@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from 'src/enums';
 import { SUBSCRIPTION_KEY } from './decorators';
@@ -28,18 +33,22 @@ export class SubscriptionGuard implements CanActivate {
     let isSubscribed = false;
     let artist: UserDocument;
 
-    if (userRole === UserRole.ARTIST) {
-      artist = user as UserDocument;
-      isSubscribed = this.getSubscriptionStatus(artist);
-    } else {
+    if (userRole === UserRole.CUSTOMER) {
       artist = await this.userModel.findOne({ userId: artistId });
       if (!artist) {
-        return false;
+        throw new ForbiddenException('Invalid artist');
       }
+      isSubscribed = this.getSubscriptionStatus(artist);
+    } else {
+      artist = user as UserDocument;
       isSubscribed = this.getSubscriptionStatus(artist);
     }
 
-    return isSubscribed;
+    if (!isSubscribed) {
+      throw new ForbiddenException(`Subscription Inactive. Please Subscribe`);
+    }
+
+    return true;
   }
 
   getSubscriptionStatus(artist: UserDocument): boolean {

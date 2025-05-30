@@ -62,8 +62,7 @@ export interface Subscriber {
 }
 
 export interface Entitlements {
-  monthly_full_access: ProCat;
-  'pmu.forms.yearly': ProCat;
+  pro: ProCat;
 }
 
 export interface ProCat {
@@ -87,12 +86,11 @@ export interface Onetime {
 // export interface OtherPurchases {}
 
 export interface Subscriptions {
-  annual: Annual;
-  onemonth: Onemonth;
-  rc_promo_pro_cat_monthly: Annual;
+  monthly_full_access: Subcription;
+  'pmu.forms.yearly': Subcription;
 }
 
-export interface Annual {
+export interface Subcription {
   auto_resume_date: null;
   billing_issues_detected_at: null;
   expires_date: Date;
@@ -106,20 +104,4 @@ export interface Annual {
   store: string;
   store_transaction_id: string;
   unsubscribe_detected_at: Date | null;
-}
-
-export interface Onemonth {
-  auto_resume_date: null;
-  billing_issues_detected_at: null;
-  expires_date: Date;
-  grace_period_expires_date: null;
-  is_sandbox: boolean;
-  original_purchase_date: Date;
-  ownership_type: string;
-  period_type: string;
-  purchase_date: Date;
-  refunded_at: null;
-  store: string;
-  store_transaction_id: number;
-  unsubscribe_detected_at: Date;
 }
