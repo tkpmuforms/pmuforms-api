@@ -22,6 +22,9 @@ export class User {
   @Prop({ default: false })
   appStorePurchaseActive: boolean;
 
+  @Prop({ type: Date })
+  subscriptionLastVerifiedDate: Date;
+
   @Prop()
   canSendPromotionEmails: boolean;
 
