@@ -18,6 +18,8 @@ import { FilledFormsModule } from './filled-forms/filled-forms.module';
 import { MessagesModule } from './messages/messages.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { UtilsModule } from './utils/utils.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { SubscriptionGuard } from './subscription/subscription.guard';
 
 @Module({
   imports: [
@@ -43,6 +45,7 @@ import { UtilsModule } from './utils/utils.module';
     FilledFormsModule,
     MessagesModule,
     UtilsModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [
@@ -54,6 +57,10 @@ import { UtilsModule } from './utils/utils.module';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SubscriptionGuard,
     },
   ],
 })

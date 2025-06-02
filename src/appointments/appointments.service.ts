@@ -221,7 +221,7 @@ export class AppointmentsService {
     return appointment;
   }
 
-  async getAppointment(appointmentId: string) {
+  async getAppointment(userId: string, appointmentId: string) {
     const appointment = await this.appointmentModel
       .findOne({
         id: appointmentId,
@@ -229,10 +229,20 @@ export class AppointmentsService {
       .populate('filledForms', 'id status')
       .populate('serviceDetails', 'id service');
 
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
+
     return appointment;
   }
 
-  async signAppointment(artistId: string, appointmentId: string, signatureUrl) {
+  async signAppointment(
+    artistId: string,
+    appointmentId: string,
+    signatureUrl: string,
+  ) {
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
     });

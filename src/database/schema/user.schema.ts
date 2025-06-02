@@ -19,7 +19,7 @@ export class User {
   @Prop()
   userId: string;
 
-  @Prop()
+  @Prop({ default: false })
   appStorePurchaseActive: boolean;
 
   @Prop()

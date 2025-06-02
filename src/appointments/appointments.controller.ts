@@ -20,7 +20,9 @@ import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import { UserRole } from 'src/enums';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { GetCustomerAuthContext } from 'src/auth/decorator/artist-context.decorator';
+import { SubscriptionBlock } from 'src/subscription/decorators';
 
+@SubscriptionBlock()
 @Controller('api/appointments')
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
@@ -107,9 +109,18 @@ export class AppointmentsController {
   }
 
   @Get('/:appointmentId')
-  async getAppointment(@Param('appointmentId') appointmentId: string) {
-    const appointment =
-      await this.appointmentsService.getAppointment(appointmentId);
+  async getAppointment(
+    @GetUser() user: CustomerDocument | UserDocument,
+    @Param('appointmentId') appointmentId: string,
+  ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
+    const appointment = await this.appointmentsService.getAppointment(
+      userId,
+      appointmentId,
+    );
 
     return { appointment };
   }

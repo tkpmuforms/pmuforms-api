@@ -16,6 +16,7 @@ import {
 import { FilledFormStatus } from 'src/enums';
 import { paginationMetaGenerator } from 'src/utils';
 import { UtilsService } from 'src/utils/utils.service';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class FilledFormsService {
@@ -73,16 +74,21 @@ export class FilledFormsService {
       );
     }
 
-    const filledForm = await this.filledFormModel.findOne({
+    let filledForm = await this.filledFormModel.findOne({
       appointmentId: appointment.id,
       clientId: customerId,
       formTemplateId: formTemplate.id,
     });
 
     if (!filledForm) {
-      throw new NotFoundException(
-        `form with id ${formTemplateId} not found for this appointment`,
-      );
+      filledForm = new this.filledFormModel({
+        id: randomUUID(),
+        appointmentId: appointment.id,
+        clientId: customerId,
+        formTemplateId: formTemplate.id,
+        title: formTemplate.title,
+        status: FilledFormStatus.INCOMPLETE,
+      });
     }
 
     filledForm.data = formData;
@@ -131,11 +137,11 @@ export class FilledFormsService {
       );
     }
 
-    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
-    //   throw new ForbiddenException(
-    //     `You are not allowed to perform this action`,
-    //   );
-    // }
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
 
     const filledForms = await this.filledFormModel
       .find({ appointmentId })
