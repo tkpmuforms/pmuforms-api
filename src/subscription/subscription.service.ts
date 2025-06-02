@@ -52,7 +52,10 @@ export class SubscriptionService {
 
     await this.userModel.updateOne(
       { userId },
-      { appStorePurchaseActive: isActive },
+      {
+        appStorePurchaseActive: isActive,
+        subscriptionLastVerifiedDate: new Date(),
+      },
     );
   }
 
