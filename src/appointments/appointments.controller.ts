@@ -22,11 +22,11 @@ import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { GetCustomerAuthContext } from 'src/auth/decorator/artist-context.decorator';
 import { SubscriptionBlock } from 'src/subscription/decorators';
 
+@SubscriptionBlock()
 @Controller('api/appointments')
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
-  @SubscriptionBlock()
   @Roles(UserRole.CUSTOMER)
   @Get('/customer')
   async getAllCustomerAppointmentsInAuthContext(

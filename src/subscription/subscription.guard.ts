@@ -45,7 +45,9 @@ export class SubscriptionGuard implements CanActivate {
     }
 
     if (!isSubscribed) {
-      throw new ForbiddenException(`Subscription Inactive. Please Subscribe`);
+      throw new ForbiddenException(
+        `Artist Subscription Inactive. Please Subscribe`,
+      );
     }
 
     return true;

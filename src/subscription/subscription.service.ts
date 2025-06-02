@@ -35,14 +35,19 @@ export class SubscriptionService {
     const { subscriber } = await this.getUserSubcriptionInfo(userId);
     let isActive = false;
 
-    // const sandboxAllowed = this.configService.get('NODE_ENV') !== 'production';
-
-    console.log(subscriber);
+    const sandboxAllowed = this.configService.get('NODE_ENV') !== 'production';
 
     if (subscriber.entitlements?.pro) {
-      isActive ||=
-        DateTime.fromISO(subscriber.entitlements.pro.expires_date) >
-        DateTime.now();
+      const subscription = subscriber.entitlements.pro.product_identifier;
+      const isSandbox = subscriber.subscriptions[subscription]?.is_sandbox;
+
+      if (isSandbox && !sandboxAllowed) {
+        isActive = false;
+      } else {
+        isActive ||=
+          DateTime.fromISO(subscriber.entitlements.pro.expires_date) >
+          DateTime.now();
+      }
     }
 
     await this.userModel.updateOne(
