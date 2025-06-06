@@ -141,10 +141,10 @@ export class SubscriptionService {
 
     if (webhookPayload.event.type === 'INITIAL_PURCHASE') {
       const user = await this.userModel.findOne({ userId });
-      await this.firstTimeSubscriberEmail(user.email, user.businessName);
       if (!user) {
         throw new NotFoundException(`User with id ${userId} not found`);
       }
+      await this.firstTimeSubscriberEmail(user.email, user.businessName);
     }
   }
 }
