@@ -31,7 +31,7 @@ export interface Event {
   takehome_percentage: number;
   tax_percentage: number;
   transaction_id: string;
-  type: 'TEST' | 'INITIAL_PURCHASE' | 'RENEWAL' | 'CANCELLATION';
+  type: 'TEST' | 'INITIAL_PURCHASE' | 'RENEWAL' | 'CANCELLATION'; // etc
 }
 
 interface SubscriberAttributes {

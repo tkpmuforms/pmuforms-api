@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/database/schema';
@@ -9,6 +13,9 @@ import {
 import axios from 'axios';
 import { AppConfigService } from 'src/config/config.service';
 import { DateTime } from 'luxon';
+import { UtilsService } from 'src/utils/utils.service';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { RevenueCatSubcriptionEvent } from './subscription.event';
 
 @Injectable()
 export class SubscriptionService {
@@ -18,6 +25,8 @@ export class SubscriptionService {
   constructor(
     @InjectModel('users') private userModel: Model<UserDocument>,
     private configService: AppConfigService,
+    private utilsService: UtilsService,
+    private eventEmitter: EventEmitter2,
   ) {
     this.REVENUECAT_API_KEY = this.configService.get('REVENUECAT_API_KEY');
   }
@@ -73,7 +82,56 @@ export class SubscriptionService {
   }
 
   async handleRevenueCatSubscription(payload: RevCatWebhookPayload) {
-    const { app_user_id: userId, app_id } = payload.event;
+    this.eventEmitter.emit(
+      'revenuecat.subscription.webhook',
+      new RevenueCatSubcriptionEvent({ webhookPayload: payload }),
+    );
+
+    return { message: 'success' };
+  }
+
+  async refreshSubscriptionStatus(userId: string) {
+    await this.updateSubscriptionStatus(userId);
+  }
+
+  private async firstTimeSubscriberEmail(email: string, businessName: string) {
+    const subject =
+      'Thank You for Subscribing – Your PMU Forms Access Is Live!';
+
+    const message = `
+      <p>Hi  <strong>${businessName}</strong>,</p>
+      <p>Welcome to PMU Forms – we’re so glad you’re here! Your beauty business just got a whole lot easier.💜</p>
+
+      <p> Here’s your quick-start checklist to get you all set up! </p>
+      <ul>
+        <li>Update your business name: This shows up on all your forms. Go to <strong>Settings → Change Business Name</strong></li>
+        <li>✅ Select the services you offer: This organizes your ready-to-use forms to match your offerings.</li>
+        <li>📖 <a href="https://pmuforms.crunch.help/en/pmuforms-functionality/managing-your-services"> Watch the quick tutorial </a> </li>
+        <li>✍️ Update your signature on file: Your signature will be automatically added to future client forms. <strong>Go to Settings → Update Signature</strong></li>
+        <li>🔗 Visit and share your personalized form link: Add this link to your website, booking page, or social media so clients can complete forms ahead of time. We’ll notify you whenever a form is submitted — no need to check manually.</li>
+        <li>🛠️ Customize your forms: You can remove any questions or entire forms that don’t apply to your services.</li>
+        <li>🧹 <a href="https://pmuforms.crunch.help/en/pmuforms-functionality/how-do-i-delete-a-question-from-pmu-forms"> How to delete a question </a></li>
+        <li>✏️  <a href="https://pmuforms.crunch.help/en/pmuforms-functionality/editing-forms"> How to edit a form </a></li>
+      </ul>
+
+      <p> Feel free to reply to this email or contact us anytime for questions at 512-521-1052.</p>
+      <p>Regards,<br/>PMU Forms Team.</p>
+    `;
+
+    await this.utilsService.sendEmail({
+      to: email,
+      subject,
+      message,
+    });
+  }
+
+  @OnEvent('revenuecat.subscription.webhook', { async: true })
+  async handleRevCatSubscription(eventPayload: RevenueCatSubcriptionEvent) {
+    const {
+      payload: { webhookPayload },
+    } = eventPayload;
+
+    const { app_user_id: userId, app_id } = webhookPayload.event;
 
     if (app_id !== this.configService.get('REVENUECAT_APP_ID')) {
       return { message: 'done' };
@@ -81,10 +139,12 @@ export class SubscriptionService {
 
     await this.updateSubscriptionStatus(userId);
 
-    return { message: 'success' };
-  }
-
-  async refreshSubscriptionStatus(userId: string) {
-    await this.updateSubscriptionStatus(userId);
+    if (webhookPayload.event.type === 'INITIAL_PURCHASE') {
+      const user = await this.userModel.findOne({ userId });
+      await this.firstTimeSubscriberEmail(user.email, user.businessName);
+      if (!user) {
+        throw new NotFoundException(`User with id ${userId} not found`);
+      }
+    }
   }
 }
