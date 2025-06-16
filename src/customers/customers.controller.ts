@@ -12,8 +12,9 @@ import {
 import { CustomersService } from './customers.service';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { UserRole } from 'src/enums';
-import { GetUser, Roles } from 'src/auth/decorator';
+import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
 import {
+  CreateCustomerDto,
   CreateCustomerNoteDto,
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
@@ -26,28 +27,52 @@ import { UpdateSignatureUrlDto } from '../users/dto';
 export class CustomersController {
   constructor(private customerService: CustomersService) {}
 
-  @Roles(UserRole.ARTIST)
+  @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
   @Get('/my-customers')
   async getMyCustomers(
-    @GetUser() artist: UserDocument,
+    @GetUser() user: UserDocument | CustomerDocument,
+    @GetCurrentUserRole() userRole: UserRole,
     @Query() options: GetMyCustomersQueryParamsDto,
   ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
     const { metadata, customers } =
-      await this.customerService.getArtistCustomers(artist.userId, options);
+      await this.customerService.getArtistCustomers(userId, options);
 
     return { metadata, customers };
   }
 
-  @Roles(UserRole.ARTIST)
+  @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
   @Get('/my-customers/search')
   async searchMyCustomers(
-    @GetUser() artist: UserDocument,
+    @GetUser() user: UserDocument | CustomerDocument,
+    @GetCurrentUserRole() userRole: UserRole,
     @Query() query: SearchMyCustomersQueryParamsDto,
   ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
     const { metadata, customers } =
-      await this.customerService.searchMyCustomers(artist.userId, query);
+      await this.customerService.searchMyCustomers(userId, query);
 
     return { metadata, customers };
+  }
+
+  @Roles(UserRole.CUSTOMER)
+  @Post('/my-customers/create-customer')
+  async createCustomer(
+    @GetUser() customerArtist: CustomerDocument,
+    @Body() dto: CreateCustomerDto,
+  ) {
+    const customer = await this.customerService.createCustomer(
+      customerArtist.id,
+      dto,
+    );
+
+    return { customer };
   }
 
   @Roles(UserRole.ARTIST)
@@ -95,7 +120,7 @@ export class CustomersController {
     @GetUser() artist: UserDocument,
     @Param('customerId') customerId: string,
     @Body() dto: CreateCustomerNoteDto,
-  ) {    
+  ) {
     const note = await this.customerService.createCustomerNote(
       artist.userId,
       customerId,

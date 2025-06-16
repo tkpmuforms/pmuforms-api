@@ -3,11 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, RootFilterQuery } from 'mongoose';
+import { Model, RootFilterQuery, PipelineStage } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { CustomerDocument, RelationshipDocument } from 'src/database/schema';
 import { paginationMetaGenerator } from 'src/utils';
 import {
+  CreateCustomerDto,
   CreateCustomerNoteDto,
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
@@ -44,10 +45,10 @@ export class CustomersService {
       .skip(skip)
       .limit(limit);
 
-      const sortedCustomers = customers.sort((a, b) =>
-        a.customer.name.localeCompare(b.customer.name)
-      );
-    
+    const sortedCustomers = customers.sort((a, b) =>
+      a.customer.name.localeCompare(b.customer.name),
+    );
+
     return { metadata, customers: sortedCustomers };
   }
 
@@ -187,7 +188,7 @@ export class CustomersService {
       customer.notes[noteIndex].note = dto.note;
     }
 
-    customer.notes[noteIndex].date = new Date()
+    customer.notes[noteIndex].date = new Date();
 
     await customer.save();
 
@@ -236,7 +237,7 @@ export class CustomersService {
     const { page = 1, limit = 10, name } = params;
     const skip = (page - 1) * limit;
 
-    const pipeline = [
+    const pipeline: PipelineStage[] = [
       {
         $match: {
           artistId,
@@ -255,15 +256,6 @@ export class CustomersService {
           path: '$customer',
           includeArrayIndex: '0',
           preserveNullAndEmptyArrays: false,
-        },
-      },
-      {
-        $match: {
-          $or: [
-            { 'customer.name': { $regex: name, $options: 'i' } },
-            { 'customer.email': { $regex: name, $options: 'i' } },
-            { 'customer.info.cell_phone': { $regex: name, $options: 'i' } },
-          ],
         },
       },
       {
@@ -290,14 +282,29 @@ export class CustomersService {
       },
     ];
 
+    if (name) {
+      const matchNameStage = {
+        $match: {
+          $or: [
+            { 'customer.name': { $regex: name, $options: 'i' } },
+            { 'customer.email': { $regex: name, $options: 'i' } },
+            { 'customer.info.cell_phone': { $regex: name, $options: 'i' } },
+          ],
+        },
+      };
+      pipeline.splice(3, 0, matchNameStage);
+    }
+
     const result = await this.relationshipModel.aggregate(pipeline);
     const docCount = result[0].aggregation[0]?.count || 0;
     const customers: any[] = result[0].data;
     const metadata = paginationMetaGenerator(docCount, page, limit);
 
-    const sortedCustomers = customers.length ? customers.sort((a, b) =>
-      a?.customer?.name.localeCompare(b?.customer?.name)
-    ) : [];
+    const sortedCustomers = customers.length
+      ? customers.sort((a, b) =>
+          a?.customer?.name.localeCompare(b?.customer?.name),
+        )
+      : [];
 
     return { metadata, customers: sortedCustomers };
   }
@@ -353,6 +360,28 @@ export class CustomersService {
 
     delete customer.notes;
 
+    return customer;
+  }
+
+  async createCustomer(artistId: string, dto: CreateCustomerDto) {
+    let customer = await this.customerModel.findOne({
+      email: dto.email ?? '#?#',
+    });
+
+    if (!customer) {
+      customer = await this.customerModel.create({
+        id: randomUUID(),
+        email: dto.email ?? undefined,
+        name: dto.name,
+        info: { client_name: dto.name },
+      });
+    }
+
+    await this.relationshipModel.findOneAndUpdate(
+      { artistId, customerId: customer.id },
+      { artistId, customerId: customer.id },
+      { upsert: true },
+    );
     return customer;
   }
 }

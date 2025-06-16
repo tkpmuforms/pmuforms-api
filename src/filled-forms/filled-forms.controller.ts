@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Param, Get } from '@nestjs/common';
+import { Body, Controller, Post, Param, Get, Query } from '@nestjs/common';
 import { FilledFormsService } from './filled-forms.service';
 import { SubmitFormDto } from './dto';
 import { GetCurrentUserRole, GetUser, Roles } from 'src/auth/decorator';
@@ -14,10 +14,11 @@ export class FilledFormsController {
   async submitForm(
     @GetUser() customer: CustomerDocument,
     @Body() dto: SubmitFormDto,
+    @Query('customer_id') artistCustomerId: string,
   ) {
     const filledForm = await this.filledFormsService.submitForm(
       dto.appointmentId,
-      customer.id,
+      artistCustomerId ?? customer.id,
       dto.formTemplateId,
       dto.data,
     );

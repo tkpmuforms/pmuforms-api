@@ -64,12 +64,12 @@ export class AppointmentsController {
   async bookAppointmentAsCustomer(
     @Body() dto: BookAnApppointmentAsCustomerDto,
     @GetUser() customer: CustomerDocument,
-    @Param('customerId') artistIdCustomerId: string,
+    @Query('customer_id') artistCustomerId: string,
   ) {
     const appointment = await this.appointmentsService.bookAppointment(
       dto.appointmentDate,
       dto.artistId,
-      artistIdCustomerId || customer.id,
+      artistCustomerId ?? customer.id,
       dto.services,
     );
 

@@ -22,7 +22,7 @@ import { AppConfigModule } from 'src/config/config.module';
     MongooseModule.forRootAsync({
       imports: [AppConfigModule],
       useFactory: async (configService: AppConfigService) => ({
-        uri: "mongodb://127.0.0.1:27017/pmuforms",
+        uri: configService.get('MONGO_URI'),
       }),
       inject: [AppConfigService],
     }),

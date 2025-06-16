@@ -121,6 +121,15 @@ export class AuthService {
       );
     }
 
+    // check if customer has an artist account
+    const customerArtistAccount = await this.userModel.findOne({
+      userId: customerId,
+    });
+    if (customerArtistAccount) {
+      customer.artistUri = customerArtistAccount.businessUri;
+      await customer.save();
+    }
+
     const access_token = await this.signToken(
       customer.id,
       UserRole.CUSTOMER,
