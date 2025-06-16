@@ -112,6 +112,7 @@ export class AppointmentsController {
   @Get('/:appointmentId')
   async getAppointment(
     @GetUser() user: CustomerDocument | UserDocument,
+    @GetCurrentUserRole() userRole: UserRole,
     @Param('appointmentId') appointmentId: string,
   ) {
     // userId- pk in artist collection
