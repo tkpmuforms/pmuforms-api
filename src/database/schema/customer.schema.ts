@@ -87,6 +87,9 @@ export class Customer {
   @Prop()
   isActive: boolean;
 
+  @Prop()
+  artistUri: string;
+
   @Prop({ type: Date, default: null })
   lastLoggedIn: Date;
 
