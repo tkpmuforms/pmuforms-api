@@ -365,7 +365,7 @@ export class CustomersService {
 
   async createCustomer(artistId: string, dto: CreateCustomerDto) {
     let customer = await this.customerModel.findOne({
-      email: dto.email ?? '#?#',
+      email: dto.email ?? 'n/a',
     });
 
     if (!customer) {

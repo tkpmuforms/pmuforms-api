@@ -204,11 +204,11 @@ export class AppointmentsService {
       );
     }
 
-    if (appointment.artistId !== userId && appointment.customerId !== userId) {
-      throw new ForbiddenException(
-        `You are not allowed to perform this action`,
-      );
-    }
+    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
+    //   throw new ForbiddenException(
+    //     `You are not allowed to perform this action`,
+    //   );
+    // }
 
     if (appointment.signed) {
       throw new BadRequestException(`Appointment has already been signed`);
@@ -229,11 +229,11 @@ export class AppointmentsService {
       .populate('filledForms', 'id status')
       .populate('serviceDetails', 'id service');
 
-    if (appointment.artistId !== userId && appointment.customerId !== userId) {
-      throw new ForbiddenException(
-        `You are not allowed to perform this action`,
-      );
-    }
+    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
+    //   throw new ForbiddenException(
+    //     `You are not allowed to perform this action`,
+    //   );
+    // }
 
     return appointment;
   }
@@ -302,11 +302,11 @@ export class AppointmentsService {
       );
     }
 
-    if (appointment.artistId !== userId && appointment.customerId !== userId) {
-      throw new ForbiddenException(
-        `You are not allowed to perform this action`,
-      );
-    }
+    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
+    //   throw new ForbiddenException(
+    //     `You are not allowed to perform this action`,
+    //   );
+    // }
 
     if (appointment.signed) {
       throw new BadRequestException(`This appointment has already been signed`);
