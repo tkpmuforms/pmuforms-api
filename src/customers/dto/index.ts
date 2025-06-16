@@ -109,6 +109,11 @@ export class CreateCustomerDto {
   email?: string | undefined;
 
   @IsString()
+  @IsEmail()
+  @IsOptional()
+  phone?: string | undefined;
+
+  @IsString()
   @IsNotEmpty()
   name: string;
 }

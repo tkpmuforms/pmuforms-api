@@ -365,15 +365,15 @@ export class CustomersService {
 
   async createCustomer(artistId: string, dto: CreateCustomerDto) {
     let customer = await this.customerModel.findOne({
-      email: dto.email ?? 'n/a',
+      email: dto?.email,
     });
 
     if (!customer) {
       customer = await this.customerModel.create({
         id: randomUUID(),
-        email: dto.email ?? undefined,
+        email: dto?.email ?? undefined,
         name: dto.name,
-        info: { client_name: dto.name },
+        info: { client_name: dto.name, cell_phone: dto?.phone ?? undefined },
       });
     }
 
