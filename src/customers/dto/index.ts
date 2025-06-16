@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   MaxLength,
   IsDate,
+  IsEmail,
 } from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
@@ -57,9 +58,9 @@ export class SearchMyCustomersQueryParamsDto {
   @Min(1, { message: 'Limit must be at least 1.' })
   limit?: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  name: string;
+  name: string | undefined;
 }
 
 export class UpdatePersonalDetailsDto {
@@ -99,4 +100,15 @@ export class UpdatePersonalDetailsDto {
   @IsOptional()
   @IsString()
   avatarUrl: string;
+}
+
+export class CreateCustomerDto {
+  @IsString()
+  @IsEmail()
+  @IsOptional()
+  email?: string | undefined;
+
+  @IsString()
+  @IsNotEmpty()
+  name: string;
 }
