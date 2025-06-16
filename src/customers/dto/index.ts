@@ -8,6 +8,7 @@ import {
   MaxLength,
   IsDate,
   IsEmail,
+  IsPhoneNumber,
 } from 'class-validator';
 
 export class GetMyCustomersQueryParamsDto {
@@ -109,7 +110,7 @@ export class CreateCustomerDto {
   email?: string | undefined;
 
   @IsString()
-  @IsEmail()
+  @IsPhoneNumber()
   @IsOptional()
   phone?: string | undefined;
 
