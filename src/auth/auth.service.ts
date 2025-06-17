@@ -222,10 +222,12 @@ export class AuthService {
     return { message: 'Email Sent' };
   }
 
-  private async sendWelcomeEmail(email: string, businessName: string) {
+  private async sendWelcomeEmail(email: string, businessName?: string) {
+    const businessNameToUse =
+      !businessName || businessName === 'New Business' ? '' : businessName;
     const subject = 'Welcome to PMU Forms – Let’s Get You Set Up!';
     const message = `
-    <p>Hi <strong>${businessName}</strong>,</p>
+    <p>Hi <strong>${businessNameToUse}</strong>,</p>
     <p>Thanks for signing up with PMU Forms — we’re excited to have you on board!</p>
     <p>Just checking in to see if you need help getting started or would like a quick walkthrough of the app. We’re here to support you every step of the way.</p>
     <p>To get the most out of your account, here are the next steps:</p>
