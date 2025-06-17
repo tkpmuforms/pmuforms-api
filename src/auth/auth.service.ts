@@ -60,9 +60,11 @@ export class AuthService {
       throw new UnauthorizedException('Email not verified');
     }
 
+    let userCreated = false;
     let artist = await this.userModel.findOne({ userId: artistId });
 
     if (!artist) {
+      userCreated = true;
       artist = await this.userModel.create({
         userId: artistId,
         email,
@@ -72,6 +74,11 @@ export class AuthService {
           artistId,
         ),
       });
+    }
+
+    if (userCreated) {
+      // send welcome email
+      this.sendWelcomeEmail(artist.email, artist.businessName);
     }
 
     const access_token = await this.signToken(artist.userId, UserRole.ARTIST);
@@ -213,5 +220,29 @@ export class AuthService {
     await this.sendEmailVerificationLink(email, link);
 
     return { message: 'Email Sent' };
+  }
+
+  private async sendWelcomeEmail(email: string, businessName: string) {
+    const subject = 'Welcome to PMU Forms – Let’s Get You Set Up!';
+    const message = `
+    <p>Hi <strong>${businessName}</strong>,</p>
+    <p>Thanks for signing up with PMU Forms — we’re excited to have you on board!</p>
+    <p>Just checking in to see if you need help getting started or would like a quick walkthrough of the app. We’re here to support you every step of the way.</p>
+    <p>To get the most out of your account, here are the next steps:</p>
+    <ol>
+      <li>Update your business name – this shows up on all your forms.</li>
+      <li>Add your signature – it will be auto-applied after a client completes a form.</li>
+      <li>Add your services – so you can preview and organize your ready-to-use forms.</li>
+      <li>Subscribe – to unlock your personalized form link to share with clients.</li>
+    </ol>
+    <p>If you’re running into any issues or want a demo, just hit reply — happy to help!</p>
+    <p>Warmly,<br/>PMU Forms Team.</p>
+  `;
+
+    await this.util.sendEmail({
+      to: email,
+      subject,
+      message,
+    });
   }
 }
