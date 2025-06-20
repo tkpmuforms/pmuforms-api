@@ -13,6 +13,7 @@ import {
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
   SearchMyCustomersQueryParamsDto,
+  UpdateCustomerPersonalDetailsDto,
   UpdatePersonalDetailsDto,
 } from './dto';
 import { randomUUID } from 'node:crypto';
@@ -327,6 +328,37 @@ export class CustomersService {
     customer.info.emergency_contact_phone =
       personalDetails.emergencyContactPhone;
     customer.info.avatar_url = personalDetails.avatarUrl;
+
+    await customer.save();
+
+    return customer;
+  }
+
+   async updateCustomerPersonalDetails(
+    artistId: string,
+    customerId: string,
+    personalDetails: UpdateCustomerPersonalDetailsDto,
+  ) {
+    const relationship = await this.relationshipModel.findOne({
+      artistId,
+      customerId,
+    });
+
+    if (!relationship) {
+      throw new ForbiddenException(
+        'there is no relationship between customer and artist',
+      );
+    }
+
+    const customer = await this.customerModel.findOne({ id: customerId });
+
+    //update the details
+    const name = personalDetails.name;
+    customer.name = name;
+    customer.info.client_name = name;
+
+    if (personalDetails?.primaryPhone)
+      customer.info.cell_phone = personalDetails.primaryPhone;
 
     await customer.save();
 

@@ -46,6 +46,17 @@ export class EditCustomerNoteDto {
   @MaxLength(5000)
   note?: string;
 }
+
+export class UpdateCustomerPersonalDetailsDto {
+  @IsString()
+  @MaxLength(5000)
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  primaryPhone: string;
+}
+
 export class SearchMyCustomersQueryParamsDto {
   @IsOptional()
   @Type(() => Number) // Ensures the value is cast to a number

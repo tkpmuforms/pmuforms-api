@@ -19,6 +19,7 @@ import {
   EditCustomerNoteDto,
   GetMyCustomersQueryParamsDto,
   SearchMyCustomersQueryParamsDto,
+  UpdateCustomerPersonalDetailsDto,
   UpdatePersonalDetailsDto,
 } from './dto';
 import { UpdateSignatureUrlDto } from '../users/dto';
@@ -188,6 +189,21 @@ export class CustomersController {
   ) {
     const customer = await this.customerService.updatePersonalDetails(
       authCustomer.id,
+      personalDetailsDto,
+    );
+    return { customer };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Patch('/my-customers/:customerId/personal-details')
+  async updateCustomerPersonalDetails(
+    @GetUser() artist: UserDocument,
+    @Param('customerId') customerId: string,
+    @Body() personalDetailsDto: UpdateCustomerPersonalDetailsDto,
+  ) {
+    const customer = await this.customerService.updateCustomerPersonalDetails(
+      artist.id,
+      customerId,
       personalDetailsDto,
     );
     return { customer };
