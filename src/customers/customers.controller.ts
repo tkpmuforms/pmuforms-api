@@ -201,7 +201,6 @@ export class CustomersController {
     @Param('customerId') customerId: string,
     @Body() personalDetailsDto: UpdateCustomerPersonalDetailsDto,
   ) {
-    console.log(artist.userId,customerId);
     const customer = await this.customerService.updateCustomerPersonalDetails(
       artist.userId,
       customerId,

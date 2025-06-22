@@ -49,11 +49,12 @@ export class EditCustomerNoteDto {
 
 export class UpdateCustomerPersonalDetailsDto {
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(500)
   name: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(20)
   primaryPhone: string;
 }
 
