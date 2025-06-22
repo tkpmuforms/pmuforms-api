@@ -202,7 +202,7 @@ export class CustomersController {
     @Body() personalDetailsDto: UpdateCustomerPersonalDetailsDto,
   ) {
     const customer = await this.customerService.updateCustomerPersonalDetails(
-      artist.id,
+      artist.userId,
       customerId,
       personalDetailsDto,
     );
