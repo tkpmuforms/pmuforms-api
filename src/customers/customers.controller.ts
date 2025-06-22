@@ -65,7 +65,7 @@ export class CustomersController {
   @Roles(UserRole.CUSTOMER)
   @Post('/my-customers/create-customer')
   async createCustomer(
-    @GetUser() customerArtist: CustomerDocument,
+    @GetUser() customerArtist: UserDocument | CustomerDocument,
     @Body() dto: CreateCustomerDto,
   ) {
     const customer = await this.customerService.createCustomer(
