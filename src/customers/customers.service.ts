@@ -339,6 +339,8 @@ export class CustomersService {
     customerId: string,
     personalDetails: UpdateCustomerPersonalDetailsDto,
   ) {
+    console.log(artistId,customerId);
+
     const relationship = await this.relationshipModel.findOne({
       artistId,
       customerId,
