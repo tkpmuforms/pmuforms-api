@@ -44,17 +44,18 @@ export class AppointmentsController {
     return { metadata, appointments };
   }
 
-  @Roles(UserRole.ARTIST)
+  @Roles(UserRole.ARTIST, UserRole.CUSTOMER)
   @Get('/artist')
   async getAllArtistAppointments(
-    @GetUser() artist: UserDocument,
+    @GetUser() user: UserDocument | CustomerDocument,
     @Query() options: PaginationParamsDto,
   ) {
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId = UserRole.ARTIST === userRole ? user.userId : user.id;
     const { metadata, appointments } =
-      await this.appointmentsService.getAllArtistAppointments(
-        artist.userId,
-        options,
-      );
+      await this.appointmentsService.getAllArtistAppointments(userId, options);
 
     return { metadata, appointments };
   }
