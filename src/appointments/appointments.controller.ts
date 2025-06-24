@@ -48,6 +48,7 @@ export class AppointmentsController {
   @Get('/artist')
   async getAllArtistAppointments(
     @GetUser() user: UserDocument | CustomerDocument,
+    @GetCurrentUserRole() userRole: UserRole,
     @Query() options: PaginationParamsDto,
   ) {
     // userId- pk in artist collection
