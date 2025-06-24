@@ -62,7 +62,7 @@ export class CustomersController {
     return { metadata, customers };
   }
 
-  @Roles(UserRole.CUSTOMER)
+  @Roles(UserRole.CUSTOMER, UserRole.ARTIST)
   @Post('/my-customers/create-customer')
   async createCustomer(
     @GetUser() customerArtist: UserDocument | CustomerDocument,

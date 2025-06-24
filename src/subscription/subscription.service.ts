@@ -94,12 +94,14 @@ export class SubscriptionService {
     await this.updateSubscriptionStatus(userId);
   }
 
-  private async firstTimeSubscriberEmail(email: string, businessName: string) {
+  private async firstTimeSubscriberEmail(email: string, businessName?: string) {
+    const businessNameToUse =
+      !businessName || businessName === 'New Business' ? '' : businessName;
     const subject =
       'Thank You for Subscribing – Your PMU Forms Access Is Live!';
 
     const message = `
-      <p>Hi  <strong>${businessName}</strong>,</p>
+      <p>Hi  <strong>${businessNameToUse}</strong>,</p>
       <p>Welcome to PMU Forms – we’re so glad you’re here! Your beauty business just got a whole lot easier.💜</p>
 
       <p> Here’s your quick-start checklist to get you all set up! </p>

@@ -33,6 +33,17 @@ export class AppointmentsService {
     private filledFormModel: Model<FilledFormDocument>,
   ) {}
 
+  private checkAppointmentAuthorization(
+    userId: string,
+    appointment: AppointmentDocument,
+  ) {
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
+  }
+
   async getAllCustomerAppointmentsInAuthContext(
     customerId: string,
     artistId: string,
@@ -89,10 +100,12 @@ export class AppointmentsService {
   async bookAppointment(
     appointmentDate: Date,
     artistId: string,
-    customerId: string,
+    customerIdd: string,
     services: number[],
+    options?: { customerId: string },
   ) {
     // check if artist and customer have relationship
+    const customerId = options?.customerId ?? customerIdd;
     const relationship = await this.relationshipModel.findOne({
       customerId,
       artistId,
@@ -204,11 +217,7 @@ export class AppointmentsService {
       );
     }
 
-    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
-    //   throw new ForbiddenException(
-    //     `You are not allowed to perform this action`,
-    //   );
-    // }
+    this.checkAppointmentAuthorization(userId, appointment);
 
     if (appointment.signed) {
       throw new BadRequestException(`Appointment has already been signed`);
@@ -229,11 +238,7 @@ export class AppointmentsService {
       .populate('filledForms', 'id status')
       .populate('serviceDetails', 'id service');
 
-    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
-    //   throw new ForbiddenException(
-    //     `You are not allowed to perform this action`,
-    //   );
-    // }
+    this.checkAppointmentAuthorization(userId, appointment);
 
     return appointment;
   }
@@ -302,11 +307,7 @@ export class AppointmentsService {
       );
     }
 
-    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
-    //   throw new ForbiddenException(
-    //     `You are not allowed to perform this action`,
-    //   );
-    // }
+    this.checkAppointmentAuthorization(userId, appointment);
 
     if (appointment.signed) {
       throw new BadRequestException(`This appointment has already been signed`);

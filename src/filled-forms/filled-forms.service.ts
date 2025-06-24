@@ -4,7 +4,6 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -21,7 +20,6 @@ import { randomUUID } from 'node:crypto';
 @Injectable()
 export class FilledFormsService {
   constructor(
-    private eventEmitter: EventEmitter2,
     @InjectModel('filled-forms')
     private filledFormModel: Model<FilledFormDocument>,
     @InjectModel('form-templates')
@@ -31,12 +29,25 @@ export class FilledFormsService {
     private utilsService: UtilsService,
   ) {}
 
+  private checkAppointmentAuthorization(
+    userId: string,
+    appointment: AppointmentDocument,
+  ) {
+    if (appointment.artistId !== userId && appointment.customerId !== userId) {
+      throw new ForbiddenException(
+        `You are not allowed to perform this action`,
+      );
+    }
+  }
+
   async submitForm(
     appointmentId: string,
-    customerId: string,
+    customerIdd: string,
     formTemplateId: string,
     formData: { [key: string]: any },
+    options?: { customerId?: string },
   ) {
+    const customerId = options?.customerId ?? customerIdd;
     const appointment = await this.appointmentModel.findOne({
       id: appointmentId,
       customerId,
@@ -137,11 +148,7 @@ export class FilledFormsService {
       );
     }
 
-    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
-    //   throw new ForbiddenException(
-    //     `You are not allowed to perform this action`,
-    //   );
-    // }
+    this.checkAppointmentAuthorization(userId, appointment);
 
     const filledForms = await this.filledFormModel
       .find({ appointmentId })
@@ -171,11 +178,7 @@ export class FilledFormsService {
       );
     }
 
-    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
-    //   throw new ForbiddenException(
-    //     `You are not allowed to perform this action`,
-    //   );
-    // }
+    this.checkAppointmentAuthorization(userId, appointment);
 
     const filledForm = await this.filledFormModel
       .findOne({

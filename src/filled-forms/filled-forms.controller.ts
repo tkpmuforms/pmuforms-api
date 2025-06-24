@@ -14,13 +14,14 @@ export class FilledFormsController {
   async submitForm(
     @GetUser() customer: CustomerDocument,
     @Body() dto: SubmitFormDto,
-    @Query('customerId') artistCustomerId: string,
+    @Query() options?: any,
   ) {
     const filledForm = await this.filledFormsService.submitForm(
       dto.appointmentId,
-      artistCustomerId ?? customer.id,
+      customer.id,
       dto.formTemplateId,
       dto.data,
+      options,
     );
 
     return { filledForm };

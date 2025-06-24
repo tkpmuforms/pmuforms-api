@@ -30,11 +30,18 @@ export class SubscriptionGuard implements CanActivate {
 
     // NOTE: values set in src/auth/auth.guard.ts
     const { userRole, user, artistId } = context.switchToHttp().getRequest();
+    if (!artistId) {
+      // situation where the customer is not logged in with any artist
+      return true;
+    }
+
     let isSubscribed = false;
     let artist: UserDocument;
 
     if (userRole === UserRole.CUSTOMER) {
-      artist = await this.userModel.findOne({ userId: artistId });
+      artist = await this.userModel.findOne({
+        $or: [{ userId: artistId }, { businessUri: artistId }],
+      });
       if (!artist) {
         throw new ForbiddenException('Invalid artist');
       }
