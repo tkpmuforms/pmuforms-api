@@ -47,7 +47,7 @@ export class CustomersService {
       .limit(limit);
 
     const sortedCustomers = customers.sort((a, b) =>
-      a.customer.name.localeCompare(b.customer.name),
+      a.customer?.info?.client_name.localeCompare(b.customer?.info?.client_name),
     );
 
     return { metadata, customers: sortedCustomers };
