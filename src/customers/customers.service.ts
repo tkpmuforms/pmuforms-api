@@ -287,7 +287,7 @@ export class CustomersService {
       const matchNameStage = {
         $match: {
           $or: [
-            { 'customer.name': { $regex: name, $options: 'i' } },
+            { 'customer.info.client_name': { $regex: name, $options: 'i' } },
             { 'customer.email': { $regex: name, $options: 'i' } },
             { 'customer.info.cell_phone': { $regex: name, $options: 'i' } },
           ],
