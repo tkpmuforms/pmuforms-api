@@ -3,9 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, RootFilterQuery, PipelineStage } from 'mongoose';
+import { Model, RootFilterQuery, PipelineStage, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { CustomerDocument, RelationshipDocument } from 'src/database/schema';
+import { CustomerDocument, RelationshipDocument, UserDocument } from 'src/database/schema';
 import { paginationMetaGenerator } from 'src/utils';
 import {
   CreateCustomerDto,
@@ -23,6 +23,8 @@ export class CustomersService {
   constructor(
     @InjectModel('relationships')
     private relationshipModel: Model<RelationshipDocument>,
+    @InjectModel('users')
+    private userModel: Model<UserDocument>,
     @InjectModel('customers')
     private customerModel: Model<CustomerDocument>,
   ) {}
@@ -396,6 +398,13 @@ export class CustomersService {
   }
 
   async createCustomer(artistId: string, dto: CreateCustomerDto) {
+
+    const user = await this.userModel.findOne({ _id: new Types.ObjectId(artistId) });
+    
+    if (!user) {
+      throw new NotFoundException(`user not found`);
+    }
+
     let customer = await this.customerModel.findOne({
       email: dto?.email,
     });
@@ -410,8 +419,8 @@ export class CustomersService {
     }
 
     await this.relationshipModel.findOneAndUpdate(
-      { artistId, customerId: customer.id },
-      { artistId, customerId: customer.id },
+      { artistId: user.userId, customerId: customer.id },
+      { artistId: user.userId, customerId: customer.id },
       { upsert: true },
     );
     return customer;
