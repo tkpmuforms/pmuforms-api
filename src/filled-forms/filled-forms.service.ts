@@ -67,9 +67,9 @@ export class FilledFormsService {
       );
     }
 
-    if (appointment.allFormsCompleted) {
+    if (appointment.allFormsCompleted && appointment.signed) {
       throw new BadRequestException(
-        `All forms have been completed for this appointment`,
+        `All forms have been completed and signed for this appointment`,
       );
     }
 

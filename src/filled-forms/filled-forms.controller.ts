@@ -38,11 +38,6 @@ export class FilledFormsController {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
-    console.log({
-      userId,
-      appointmentId
-    });
-    
     const { metadata, filledForms } =
       await this.filledFormsService.getFilledFormsForAppointment(
         userId,
