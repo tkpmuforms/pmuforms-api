@@ -33,6 +33,8 @@ export class FilledFormsService {
     userId: string,
     appointment: AppointmentDocument,
   ) {
+    console.log(JSON.stringify(appointment));
+    
     // if (appointment.artistId !== userId && appointment.customerId !== userId) {
     //   throw new ForbiddenException(
     //     `You are not allowed to perform this action`,
