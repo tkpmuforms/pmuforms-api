@@ -33,11 +33,11 @@ export class FilledFormsService {
     userId: string,
     appointment: AppointmentDocument,
   ) {
-    if (appointment.artistId !== userId && appointment.customerId !== userId) {
-      throw new ForbiddenException(
-        `You are not allowed to perform this action`,
-      );
-    }
+    // if (appointment.artistId !== userId && appointment.customerId !== userId) {
+    //   throw new ForbiddenException(
+    //     `You are not allowed to perform this action`,
+    //   );
+    // }
   }
 
   async submitForm(
