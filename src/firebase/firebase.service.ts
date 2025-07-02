@@ -82,4 +82,23 @@ export class FirebaseService {
       throw new InternalServerErrorException('Something went wrong');
     }
   }
+
+  async updateEmail(uid: string, email: string) {
+    try {
+      const user = await firebaseAdmin.auth().updateUser(uid, { email });
+      return user;
+    } catch (error) {
+      console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
+
+  async deleteUser(uid: string) {
+    try {
+      await firebaseAdmin.auth().deleteUser(uid);
+    } catch ({ error }) {
+      console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
 }
