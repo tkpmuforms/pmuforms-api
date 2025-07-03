@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -101,13 +102,17 @@ export class CustomersService {
     const numOfCustomerAppointments =
       await this.appointmentModel.countDocuments({ customerId });
 
-    if (numOfCustomerAppointments === 0) {
-      await this.customerModel.deleteOne({ customerId });
-      const uuidRegex =
-        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-      if (!uuidRegex.test(customerId)) {
-        await this.firebaseService.deleteUser(customerId);
-      }
+    if (numOfCustomerAppointments > 0) {
+      throw new BadRequestException(
+        `customer has ${numOfCustomerAppointments} appointments, cannot delete customer`,
+      );
+    }
+
+    await this.customerModel.deleteOne({ customerId });
+    const uuidRegex =
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!uuidRegex.test(customerId)) {
+      await this.firebaseService.deleteUser(customerId);
     }
   }
 
@@ -388,10 +393,14 @@ export class CustomersService {
 
     if (personalDetails.email) {
       customer.email = personalDetails.email;
-      await this.firebaseService.updateEmail(
-        customer.id,
-        personalDetails.email,
-      );
+      const uuidRegex =
+        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (!uuidRegex.test(customerId)) {
+        await this.firebaseService.updateEmail(
+          customer.id,
+          personalDetails.email,
+        );
+      }
     }
 
     await customer.save();
