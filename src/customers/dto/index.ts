@@ -55,7 +55,13 @@ export class UpdateCustomerPersonalDetailsDto {
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  primaryPhone: string;
+  primaryPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEmail()
+  @MaxLength(100)
+  email?: string;
 }
 
 export class SearchMyCustomersQueryParamsDto {

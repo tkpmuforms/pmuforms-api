@@ -5,7 +5,12 @@ import {
 } from '@nestjs/common';
 import { Model, RootFilterQuery, PipelineStage, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { CustomerDocument, RelationshipDocument, UserDocument } from 'src/database/schema';
+import {
+  AppointmentDocument,
+  CustomerDocument,
+  RelationshipDocument,
+  UserDocument,
+} from 'src/database/schema';
 import { paginationMetaGenerator } from 'src/utils';
 import {
   CreateCustomerDto,
@@ -17,16 +22,20 @@ import {
   UpdatePersonalDetailsDto,
 } from './dto';
 import { randomUUID } from 'node:crypto';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class CustomersService {
   constructor(
+    private firebaseService: FirebaseService,
     @InjectModel('relationships')
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
     @InjectModel('customers')
     private customerModel: Model<CustomerDocument>,
+    @InjectModel('appointments')
+    private appointmentModel: Model<AppointmentDocument>,
   ) {}
 
   async getArtistCustomers(
@@ -49,7 +58,9 @@ export class CustomersService {
       .limit(limit);
 
     const sortedCustomers = customers.sort((a, b) =>
-      a.customer?.info?.client_name.localeCompare(b.customer?.info?.client_name),
+      a.customer?.info?.client_name.localeCompare(
+        b.customer?.info?.client_name,
+      ),
     );
 
     return { metadata, customers: sortedCustomers };
@@ -83,8 +94,21 @@ export class CustomersService {
         `there is no relationship between customer ${customerId} and artist ${artistId}`,
       );
     }
-    // delete the relationship between artist and customer
+
     await relationship.deleteOne();
+
+    // check if customer has appointments
+    const numOfCustomerAppointments =
+      await this.appointmentModel.countDocuments({ customerId });
+
+    if (numOfCustomerAppointments === 0) {
+      await this.customerModel.deleteOne({ customerId });
+      const uuidRegex =
+        /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+      if (!uuidRegex.test(customerId)) {
+        await this.firebaseService.deleteUser(customerId);
+      }
+    }
   }
 
   async getCustomerNotes(artistId: string, customerId: string) {
@@ -336,7 +360,7 @@ export class CustomersService {
     return customer;
   }
 
-   async updateCustomerPersonalDetails(
+  async updateCustomerPersonalDetails(
     artistId: string,
     customerId: string,
     personalDetails: UpdateCustomerPersonalDetailsDto,
@@ -359,8 +383,16 @@ export class CustomersService {
     customer.name = name;
     customer.info.client_name = name;
 
-    if (personalDetails?.primaryPhone)
+    if (personalDetails.primaryPhone)
       customer.info.cell_phone = personalDetails.primaryPhone;
+
+    if (personalDetails.email) {
+      customer.email = personalDetails.email;
+      await this.firebaseService.updateEmail(
+        customer.id,
+        personalDetails.email,
+      );
+    }
 
     await customer.save();
 
@@ -398,9 +430,10 @@ export class CustomersService {
   }
 
   async createCustomer(artistId: string, dto: CreateCustomerDto) {
+    const user = await this.userModel.findOne({
+      _id: new Types.ObjectId(artistId),
+    });
 
-    const user = await this.userModel.findOne({ _id: new Types.ObjectId(artistId) });
-    
     if (!user) {
       throw new NotFoundException(`user not found`);
     }
