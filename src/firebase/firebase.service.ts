@@ -1,11 +1,12 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import firebaseAdmin from 'firebase-admin';
 import { getMessaging } from 'firebase-admin/messaging';
-import { getAuth } from 'firebase-admin/auth';
+import { FirebaseAuthError, getAuth } from 'firebase-admin/auth';
 import { AppConfigService } from 'src/config/config.service';
 
 @Injectable()
@@ -87,7 +88,16 @@ export class FirebaseService {
     try {
       const user = await firebaseAdmin.auth().updateUser(uid, { email });
       return user;
-    } catch (error) {
+    } catch (error: unknown) {
+      console.log('here');
+      if (error instanceof FirebaseAuthError) {
+        if (error.code === 'auth/user-not-found') {
+          return null;
+        }
+        if (error.code === 'auth/email-already-exists') {
+          throw new BadRequestException('User with email already exists');
+        }
+      }
       console.error({ error });
       throw new InternalServerErrorException('Something went wrong');
     }
@@ -96,7 +106,7 @@ export class FirebaseService {
   async deleteUser(uid: string) {
     try {
       await firebaseAdmin.auth().deleteUser(uid);
-    } catch ({ error }) {
+    } catch (error) {
       console.error({ error });
       throw new InternalServerErrorException('Something went wrong');
     }
