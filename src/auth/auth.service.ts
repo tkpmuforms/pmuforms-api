@@ -114,8 +114,8 @@ export class AuthService {
       customer = await this.customerModel.create({
         id: customerId,
         email,
-        name: name ?? email,
-        info: { client_name: name ?? email },
+        name: name,
+        info: { client_name: name },
       });
     }
 
