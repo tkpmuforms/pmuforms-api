@@ -7,6 +7,8 @@ export const configSchema = z.object({
     .default('3333'),
   API_URL: z.string().url(),
 
+  AUTH_API_KEY: z.string(),
+
   NODE_ENV: z
     .enum(['development', 'production', 'test', 'staging'])
     .default('development'),
