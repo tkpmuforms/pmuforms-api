@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -99,6 +100,14 @@ export class UsersController {
       artist.userId,
       dto.signature_url,
     );
+
+    return { artist: artistDoc };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Delete('/delete-me')
+  async deleteArtist(@GetUser() artist: UserDocument) {
+    const artistDoc = await this.usersService.deleteArtist(artist.userId);
 
     return { artist: artistDoc };
   }
