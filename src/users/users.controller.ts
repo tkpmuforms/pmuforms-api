@@ -107,8 +107,8 @@ export class UsersController {
   @Roles(UserRole.ARTIST)
   @Delete('/delete-me')
   async deleteArtist(@GetUser() artist: UserDocument) {
-    const artistDoc = await this.usersService.deleteArtist(artist.userId);
+    const resp = await this.usersService.deleteArtist(artist.userId);
 
-    return { artist: artistDoc };
+    return resp;
   }
 }
