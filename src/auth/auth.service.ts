@@ -82,7 +82,7 @@ export class AuthService {
     }
 
     const access_token = await this.signToken(artist.userId, UserRole.ARTIST);
-    return { access_token, artist };
+    return { access_token, userCreated, artist };
   }
 
   async createCustomer(accessToken: string, artistId?: string) {
