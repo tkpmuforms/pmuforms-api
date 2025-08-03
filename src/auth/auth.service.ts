@@ -16,6 +16,7 @@ import {
 } from 'src/database/schema';
 import { UserRole } from 'src/enums';
 import { UtilsService } from 'src/utils/utils.service';
+import { ChangePasswordDto } from './dto';
 
 @Injectable()
 export class AuthService {
@@ -246,5 +247,19 @@ export class AuthService {
       subject,
       message,
     });
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const { uid } = await this.firebaseService.verifyIdToken(
+      dto.firebaseIdToken,
+    );
+
+    if (uid !== userId) {
+      throw new UnauthorizedException('Invalid Token');
+    }
+
+    await this.firebaseService.updateUserPassword(uid, dto.newPassword);
+
+    return { message: 'Password updated successfully' };
   }
 }

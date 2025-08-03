@@ -3,6 +3,7 @@ import {
   CreateCustomerDto,
   CreateArtistDto,
   SwitchCustomerAuthContextDto,
+  ChangePasswordDto,
 } from './dto';
 import { AuthService } from './auth.service';
 import { GetUser, Public, Roles } from './decorator';
@@ -43,7 +44,7 @@ export class AuthController {
   }
 
   @Roles(UserRole.CUSTOMER)
-  @Post('customer/switch-context')
+  @Post('/customer/switch-context')
   async switchCustomerAuthContext(
     @GetUser() customer: CustomerDocument,
     @Body() dto: SwitchCustomerAuthContextDto,
@@ -52,5 +53,14 @@ export class AuthController {
       customer.id,
       dto.artistId,
     );
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Post('/artist/change-password')
+  async changePassword(
+    @GetUser() user: UserDocument,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(user.id, dto);
   }
 }

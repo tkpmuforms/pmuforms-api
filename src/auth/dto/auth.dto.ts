@@ -21,3 +21,13 @@ export class SwitchCustomerAuthContextDto {
   @IsNotEmpty()
   artistId: string;
 }
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  firebaseIdToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  newPassword: string;
+}
