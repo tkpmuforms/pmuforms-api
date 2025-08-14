@@ -7,6 +7,8 @@ export const configSchema = z.object({
     .default('3333'),
   API_URL: z.string().url(),
 
+  AUTH_API_KEY: z.string(),
+
   NODE_ENV: z
     .enum(['development', 'production', 'test', 'staging'])
     .default('development'),
@@ -33,6 +35,7 @@ export const configSchema = z.object({
   CONTACT_US_EMAIL: z.string(),
 
   FIREBASE_SERVICE_ACCOUNT_JSON: z.string(),
+  FIREBASE_STORAGE_BUCKET: z.string(),
 
   REVENUECAT_APP_ID: z.string(),
   REVENUECAT_API_KEY: z.string(),
