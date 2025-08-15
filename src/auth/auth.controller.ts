@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import {
   CreateCustomerDto,
   CreateArtistDto,
@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
 import { GetUser, Public, Roles } from './decorator';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { UserRole } from 'src/enums';
-import { AuthApiGuard } from './auth-api.guard';
+// import { AuthApiGuard } from './auth-api.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -21,7 +21,7 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(AuthApiGuard)
+  // @UseGuards(AuthApiGuard)
   @Post('/customer/create')
   async createCustomer(@Body() customerDto: CreateCustomerDto) {
     const customer = await this.authService.createCustomer(
@@ -32,7 +32,7 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(AuthApiGuard)
+  // @UseGuards(AuthApiGuard)
   @Post('/artist/create')
   async createUser(@Body() userDto: CreateArtistDto) {
     const user = await this.authService.createUser(userDto.accessToken);
@@ -40,7 +40,7 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(AuthApiGuard)
+  // @UseGuards(AuthApiGuard)
   @Get('/send-email-verification/:uid')
   async sendEmailVerification(@Param('uid') uid: string) {
     const user = await this.authService.sendEmailVerification(uid);

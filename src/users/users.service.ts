@@ -283,7 +283,7 @@ export class UsersService {
 
     return { totalClients, formsShared, pendingSubmissions, todaysSchedule };
   }
-  
+
   async deleteArtist(artistId: string) {
     this.eventEmitter.emit('user.delete', new DeleteArtistEvent({ artistId }));
     return { message: 'success' };
