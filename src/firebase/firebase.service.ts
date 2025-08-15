@@ -21,7 +21,6 @@ export class FirebaseService {
         const serviceAccount = JSON.parse(firebaseSirverAccoutCred);
         firebaseAdmin.initializeApp({
           credential: firebaseAdmin.credential.cert(serviceAccount),
-          storageBucket: this.config.get('FIREBASE_STORAGE_BUCKET'),
         });
       }
     } catch (error: any) {

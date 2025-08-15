@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   AppointmentDocument,
   FilledFormDocument,
-  FormTemplateDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
@@ -22,18 +21,18 @@ import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
-  logger = new Logger(UsersService.name);
+  private logger = new Logger(UsersService.name);
   constructor(
     @InjectModel('relationships')
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
-    @InjectModel('form-templates')
-    private formTemplatesModel: Model<FormTemplateDocument>,
-    @InjectModel('appointments')
-    private appointmentModel: Model<AppointmentDocument>,
     @InjectModel('filled-forms')
     private filledFormModel: Model<FilledFormDocument>,
+    @InjectModel('appointments')
+    private appointmentModel: Model<AppointmentDocument>,
+    @InjectModel('form-templates')
+    private formTemplateModel: Model<AppointmentDocument>,
     private urlService: UrlService,
     private config: AppConfigService,
     private utilsService: UtilsService,
@@ -303,7 +302,7 @@ export class UsersService {
     // Firebase record
 
     await this.filledFormModel.deleteMany({ artistId: payload.artistId });
-    await this.formTemplatesModel.deleteMany({ artistId: payload.artistId });
+    await this.formTemplateModel.deleteMany({ artistId: payload.artistId });
     await this.appointmentModel.deleteMany({ artistId: payload.artistId });
     await this.relationshipModel.deleteMany({ artistId: payload.artistId });
     await this.userModel.deleteOne({ userId: payload.artistId });

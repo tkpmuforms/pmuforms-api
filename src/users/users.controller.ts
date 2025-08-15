@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -109,13 +108,5 @@ export class UsersController {
     );
 
     return { artist: artistDoc };
-  }
-
-  @Roles(UserRole.ARTIST)
-  @Delete('/delete-me')
-  async deleteArtist(@GetUser() artist: UserDocument) {
-    const resp = await this.usersService.deleteArtist(artist.userId);
-
-    return resp;
   }
 }
