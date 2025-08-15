@@ -88,7 +88,7 @@ export class AuthService {
 
   async createCustomer(accessToken: string, artistId?: string) {
     const auth = await this.firebaseService.verifyIdToken(accessToken);
-
+    let userCreated = false;
     const { uid: customerId, email, name, email_verified } = auth;
 
     if (!email_verified) {
@@ -112,6 +112,7 @@ export class AuthService {
     let customer = await this.customerModel.findOne({ id: customerId });
 
     if (!customer) {
+      userCreated = true;
       customer = await this.customerModel.create({
         id: customerId,
         email,
@@ -144,7 +145,7 @@ export class AuthService {
       artist?.userId,
     );
 
-    return { access_token, customer };
+    return { access_token, userCreated, customer };
   }
 
   async switchCustomerAuthContext(customerId: string, artistId: string) {
