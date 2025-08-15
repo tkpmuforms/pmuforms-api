@@ -1,5 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RelationshipDocument, UserDocument } from 'src/database/schema';
+import {
+  AppointmentDocument,
+  FilledFormDocument,
+  RelationshipDocument,
+  UserDocument,
+} from 'src/database/schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage } from 'mongoose';
 import { UrlService } from 'src/url/url.service';
@@ -7,6 +12,8 @@ import { AppConfigService } from 'src/config/config.service';
 import { UtilsService } from 'src/utils/utils.service';
 import { paginationMetaGenerator } from 'src/utils';
 import { SearchMyArtistsQueryParamsDto } from './dto';
+import { DateTime } from 'luxon';
+import { FilledFormStatus } from 'src/enums';
 
 @Injectable()
 export class UsersService {
@@ -15,6 +22,10 @@ export class UsersService {
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
+    @InjectModel('appointments')
+    private appointmentModel: Model<AppointmentDocument>,
+    @InjectModel('filled-forms')
+    private filledFormModel: Model<FilledFormDocument>,
     private urlService: UrlService,
     private config: AppConfigService,
     private utilsService: UtilsService,
@@ -179,5 +190,87 @@ export class UsersService {
     const metadata = paginationMetaGenerator(docCount, page, limit);
 
     return { metadata, artists };
+  }
+
+  async getArtistMetrics(artistId: string) {
+    const twelveAm = DateTime.now().startOf('day').toJSDate();
+    const eleven59pm = DateTime.now().endOf('day').toJSDate();
+    const totalClientsPromise = this.relationshipModel.countDocuments({
+      artistId,
+    });
+
+    const filledFormsPipeline: PipelineStage[] = [
+      {
+        $lookup: {
+          from: 'appointments',
+          localField: 'appointmentId',
+          foreignField: 'id',
+          as: 'appointment',
+        },
+      },
+      {
+        $unwind: {
+          path: '$appointment',
+          includeArrayIndex: '0',
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $match: {
+          'appointment.artistId': 'yp26mrvalfWtAjebQdlkmIIg5Rg2',
+        },
+      },
+      {
+        $project: {
+          id: 1,
+          status: 1,
+          appointmentId: 1,
+          appointment: 1,
+        },
+      },
+      {
+        $facet: {
+          allFilledForms: [
+            {
+              $count: 'count',
+            },
+          ],
+          pendingFilledForms: [
+            {
+              $match: {
+                status: FilledFormStatus.INCOMPLETE,
+              },
+            },
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+    ];
+
+    const filledFormsPromise =
+      this.filledFormModel.aggregate(filledFormsPipeline);
+
+    const todaysSchedulePromise = this.appointmentModel.countDocuments({
+      artistId,
+      date: {
+        $gte: twelveAm,
+        $lte: eleven59pm,
+      },
+    });
+
+    const [totalClients, pendingSubmissionsAgg, todaysSchedule] =
+      await Promise.all([
+        totalClientsPromise,
+        filledFormsPromise,
+        todaysSchedulePromise,
+      ]);
+    const pendingSubmissions =
+      pendingSubmissionsAgg?.[0]?.pendingFilledForms?.[0]?.count || 0;
+    const formsShared =
+      pendingSubmissionsAgg?.[0]?.allFilledForms?.[0]?.count || 0;
+
+    return { totalClients, formsShared, pendingSubmissions, todaysSchedule };
   }
 }
