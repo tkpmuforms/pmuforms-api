@@ -9,6 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import {
   AppointmentDocument,
   CustomerDocument,
+  FilledFormDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
@@ -24,6 +25,7 @@ import {
 } from './dto';
 import { randomUUID } from 'node:crypto';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { FilledFormStatus } from 'src/enums';
 
 @Injectable()
 export class CustomersService {
@@ -37,7 +39,28 @@ export class CustomersService {
     private customerModel: Model<CustomerDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
+    @InjectModel('filled-forms')
+    private filledFormModel: Model<FilledFormDocument>,
   ) {}
+
+  private async checkRelationship({
+    artistId,
+    customerId,
+  }: {
+    artistId: string;
+    customerId: string;
+  }) {
+    const relationship = await this.relationshipModel.findOne({
+      artistId,
+      customerId,
+    });
+
+    if (!relationship) {
+      throw new ForbiddenException(
+        `there is no relationship between customer ${customerId}`,
+      );
+    }
+  }
 
   async getArtistCustomers(
     artistId: string,
@@ -117,16 +140,7 @@ export class CustomersService {
   }
 
   async getCustomerNotes(artistId: string, customerId: string) {
-    const relationship = await this.relationshipModel.findOne({
-      artistId,
-      customerId,
-    });
-
-    if (!relationship) {
-      throw new ForbiddenException(
-        `there is no relationship between customer ${customerId}`,
-      );
-    }
+    await this.checkRelationship({ artistId, customerId });
     const customer = await this.customerModel.findOne({ id: customerId });
 
     const artistsNotesForCustomer = customer.notes?.filter((note) => {
@@ -141,16 +155,7 @@ export class CustomersService {
     customerId: string,
     dto: CreateCustomerNoteDto,
   ) {
-    const relationship = await this.relationshipModel.findOne({
-      artistId,
-      customerId,
-    });
-
-    if (!relationship) {
-      throw new ForbiddenException(
-        `there is no relationship between customer ${customerId}`,
-      );
-    }
+    await this.checkRelationship({ artistId, customerId });
 
     const customer = await this.customerModel.findOne({ id: customerId });
 
@@ -189,16 +194,7 @@ export class CustomersService {
       throw new ForbiddenException(`there is no note content to update`);
     }
 
-    const relationship = await this.relationshipModel.findOne({
-      artistId,
-      customerId,
-    });
-
-    if (!relationship) {
-      throw new ForbiddenException(
-        `there is no relationship between customer ${customerId}`,
-      );
-    }
+    await this.checkRelationship({ artistId, customerId });
 
     const customer = await this.customerModel.findOne({ id: customerId });
 
@@ -466,5 +462,70 @@ export class CustomersService {
       { upsert: true },
     );
     return customer;
+  }
+
+  async getCustomerMetrics(artistId: string, customerId: string) {
+    await this.checkRelationship({ artistId, customerId });
+
+    const totalApppointmentsPromise = this.appointmentModel.countDocuments({
+      artistId,
+      customerId,
+    });
+
+    const pendingFilledForms: PipelineStage[] = [
+      {
+        $lookup: {
+          from: 'appointments',
+          localField: 'appointmentId',
+          foreignField: 'id',
+          as: 'appointment',
+        },
+      },
+      {
+        $unwind: {
+          path: '$appointment',
+          includeArrayIndex: '0',
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $project: {
+          id: 1,
+          status: 1,
+          clientId: 1,
+          appointmentId: 1,
+          appointment: 1,
+        },
+      },
+      {
+        $match: {
+          'appointment.artistId': artistId,
+          clientId: customerId,
+          status: FilledFormStatus.INCOMPLETE,
+        },
+      },
+
+      {
+        $facet: {
+          aggregation: [
+            {
+              $count: 'count',
+            },
+          ],
+        },
+      },
+    ];
+
+    const pendingFilledFormsPromise =
+      this.filledFormModel.aggregate(pendingFilledForms);
+
+    const [totalAppointments, pendingFormsAgg] = await Promise.all([
+      totalApppointmentsPromise,
+      pendingFilledFormsPromise,
+    ]);
+
+    const pendingForms = pendingFormsAgg?.[0]?.aggregation?.[0]?.count || 0;
+
+    return { totalAppointments, pendingForms };
   }
 }

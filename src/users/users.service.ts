@@ -227,7 +227,7 @@ export class UsersService {
       },
       {
         $match: {
-          'appointment.artistId': 'yp26mrvalfWtAjebQdlkmIIg5Rg2',
+          'appointment.artistId': artistId,
         },
       },
       {

@@ -208,4 +208,17 @@ export class CustomersController {
     );
     return { customer };
   }
+
+  @Roles(UserRole.ARTIST)
+  @Get('/my-customers/:customerId/metrics')
+  async getCustomerMetrics(
+    @GetUser() artist: UserDocument,
+    @Param('customerId') customerId: string,
+  ) {
+    const metrics = await this.customerService.getCustomerMetrics(
+      artist.userId,
+      customerId,
+    );
+    return { metrics };
+  }
 }
