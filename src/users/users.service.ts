@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   AppointmentDocument,
   FilledFormDocument,
+  FormTemplateDocument,
   RelationshipDocument,
   UserDocument,
 } from 'src/database/schema';
@@ -14,14 +15,21 @@ import { paginationMetaGenerator } from 'src/utils';
 import { SearchMyArtistsQueryParamsDto } from './dto';
 import { DateTime } from 'luxon';
 import { FilledFormStatus } from 'src/enums';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { DeleteArtistEvent } from './users.events';
+import { FirebaseService } from 'src/firebase/firebase.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
+  logger = new Logger(UsersService.name);
   constructor(
     @InjectModel('relationships')
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
+    @InjectModel('form-templates')
+    private formTemplatesModel: Model<FormTemplateDocument>,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
     @InjectModel('filled-forms')
@@ -29,6 +37,8 @@ export class UsersService {
     private urlService: UrlService,
     private config: AppConfigService,
     private utilsService: UtilsService,
+    private firebaseService: FirebaseService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async updateBusinessName(artistId: string, buinessName: string) {
@@ -272,5 +282,54 @@ export class UsersService {
       pendingSubmissionsAgg?.[0]?.allFilledForms?.[0]?.count || 0;
 
     return { totalClients, formsShared, pendingSubmissions, todaysSchedule };
+  }
+  
+  async deleteArtist(artistId: string) {
+    this.eventEmitter.emit('user.delete', new DeleteArtistEvent({ artistId }));
+    return { message: 'success' };
+  }
+
+  @OnEvent('user.delete', { async: true })
+  async deleteArtistEventHandler({ payload }: DeleteArtistEvent) {
+    console.log({ payload });
+    const artist = await this.userModel.findOne({ userId: payload.artistId });
+
+    if (!artist) {
+      return;
+    }
+
+    // Delete all their user record, relationships, custom form templates, appointments, filled forms
+    // All s3 bucket data relating to their customer
+    // Firebase record
+
+    await this.filledFormModel.deleteMany({ artistId: payload.artistId });
+    await this.formTemplatesModel.deleteMany({ artistId: payload.artistId });
+    await this.appointmentModel.deleteMany({ artistId: payload.artistId });
+    await this.relationshipModel.deleteMany({ artistId: payload.artistId });
+    await this.userModel.deleteOne({ userId: payload.artistId });
+    await this.deleteArtistFirebaseAuth(payload.artistId);
+    await this.deleteFilesFromFirebaseStorage(payload.artistId);
+  }
+
+  private async deleteArtistFirebaseAuth(artistId: string) {
+    try {
+      await this.firebaseService.deleteUser(artistId);
+    } catch (error) {
+      this.logger.log(`XXX unable to delete firebase auth for-${artistId} XXX`);
+      this.logger.error(error);
+    }
+  }
+
+  private async deleteFilesFromFirebaseStorage(artistId: string) {
+    const files = [`signatures/artist/${artistId}/signature.jpg`];
+
+    for (const file of files) {
+      try {
+        await this.firebaseService.deleteFileFromBucket(file);
+      } catch (error) {
+        this.logger.log(`XXX unable to delete file- ${file} XXX`);
+        this.logger.error(error);
+      }
+    }
   }
 }

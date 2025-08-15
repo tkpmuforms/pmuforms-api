@@ -21,6 +21,7 @@ export class FirebaseService {
         const serviceAccount = JSON.parse(firebaseSirverAccoutCred);
         firebaseAdmin.initializeApp({
           credential: firebaseAdmin.credential.cert(serviceAccount),
+          storageBucket: this.config.get('FIREBASE_STORAGE_BUCKET'),
         });
       }
     } catch (error: any) {
@@ -135,7 +136,17 @@ export class FirebaseService {
   async verifyUserEmail(uid: string) {
     try {
       await firebaseAdmin.auth().updateUser(uid, { emailVerified: true });
-    } catch {
+    } catch (error) {
+      console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
+
+  async deleteFileFromBucket(filePath: string) {
+    try {
+      await firebaseAdmin.storage().bucket().file(filePath).delete();
+    } catch (error) {
+      console.error({ error });
       throw new InternalServerErrorException('Something went wrong');
     }
   }
