@@ -3,11 +3,13 @@ import {
   CreateCustomerDto,
   CreateArtistDto,
   SwitchCustomerAuthContextDto,
+  ChangePasswordDto,
 } from './dto';
 import { AuthService } from './auth.service';
 import { GetUser, Public, Roles } from './decorator';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { UserRole } from 'src/enums';
+// import { AuthApiGuard } from './auth-api.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -19,6 +21,7 @@ export class AuthController {
   }
 
   @Public()
+  // @UseGuards(AuthApiGuard)
   @Post('/customer/create')
   async createCustomer(@Body() customerDto: CreateCustomerDto) {
     const customer = await this.authService.createCustomer(
@@ -29,6 +32,7 @@ export class AuthController {
   }
 
   @Public()
+  // @UseGuards(AuthApiGuard)
   @Post('/artist/create')
   async createUser(@Body() userDto: CreateArtistDto) {
     const user = await this.authService.createUser(userDto.accessToken);
@@ -36,6 +40,7 @@ export class AuthController {
   }
 
   @Public()
+  // @UseGuards(AuthApiGuard)
   @Get('/send-email-verification/:uid')
   async sendEmailVerification(@Param('uid') uid: string) {
     const user = await this.authService.sendEmailVerification(uid);
@@ -43,7 +48,7 @@ export class AuthController {
   }
 
   @Roles(UserRole.CUSTOMER)
-  @Post('customer/switch-context')
+  @Post('/customer/switch-context')
   async switchCustomerAuthContext(
     @GetUser() customer: CustomerDocument,
     @Body() dto: SwitchCustomerAuthContextDto,
@@ -52,5 +57,14 @@ export class AuthController {
       customer.id,
       dto.artistId,
     );
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Post('/artist/change-password')
+  async changePassword(
+    @GetUser() user: UserDocument,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return await this.authService.changePassword(user.id, dto);
   }
 }

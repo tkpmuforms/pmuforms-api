@@ -111,4 +111,42 @@ export class FirebaseService {
       throw new InternalServerErrorException('Something went wrong');
     }
   }
+
+  async updateUserPassword(uid: string, password: string) {
+    try {
+      await firebaseAdmin.auth().updateUser(uid, { password: password });
+    } catch {
+      throw new InternalServerErrorException('Something Went Wrong');
+    }
+  }
+
+  async getUserByEmail(email: string) {
+    try {
+      const user = await firebaseAdmin.auth().getUserByEmail(email);
+      return user;
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        return null;
+      }
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
+
+  async verifyUserEmail(uid: string) {
+    try {
+      await firebaseAdmin.auth().updateUser(uid, { emailVerified: true });
+    } catch (error) {
+      console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
+
+  async deleteFileFromBucket(filePath: string) {
+    try {
+      await firebaseAdmin.storage().bucket().file(filePath).delete();
+    } catch (error) {
+      console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
 }

@@ -75,6 +75,13 @@ export class UsersController {
     return res;
   }
 
+  @Roles(UserRole.ARTIST)
+  @Get('/my-metrics')
+  async getArtistMetrics(@GetUser() artist: UserDocument) {
+    const metrics = await this.usersService.getArtistMetrics(artist.userId);
+    return { metrics };
+  }
+
   @Get('/:artistId')
   async getAnArtist(@Param('artistId') artistId: string) {
     const artist = await this.usersService.getAnArtistById(artistId);
