@@ -82,6 +82,8 @@ export class FormTemplate {
   @Prop()
   deletedAt: Date;
 
+  createdAt: Date;
+
   updatedAt: Date;
 }
 
