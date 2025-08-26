@@ -20,6 +20,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { UtilsModule } from './utils/utils.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { SubscriptionGuard } from './subscription/subscription.guard';
+import { RemindersModule } from './reminders/reminders.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { SubscriptionGuard } from './subscription/subscription.guard';
     MessagesModule,
     UtilsModule,
     SubscriptionModule,
+    RemindersModule,
   ],
   controllers: [AppController],
   providers: [

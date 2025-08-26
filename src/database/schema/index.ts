@@ -8,3 +8,4 @@ export * from './log.schema';
 export * from './review.schema';
 export * from './url.schema';
 export * from './message.schema';
+export * from './reminder.schema';
