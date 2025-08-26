@@ -11,7 +11,7 @@ import { UrlService } from 'src/url/url.service';
 import { AppConfigService } from 'src/config/config.service';
 import { UtilsService } from 'src/utils/utils.service';
 import { paginationMetaGenerator } from 'src/utils';
-import { SearchMyArtistsQueryParamsDto } from './dto';
+import { SearchMyArtistsQueryParamsDto, UpdateProfileDto } from './dto';
 import { DateTime } from 'luxon';
 import { FilledFormStatus } from 'src/enums';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -330,5 +330,40 @@ export class UsersService {
         this.logger.error(error);
       }
     }
+  }
+
+  async updateProfile(artistId: string, dto: UpdateProfileDto) {
+    console.log({ dto });
+    const artist = await this.userModel
+      .findOne({ userId: artistId })
+      .select('+profile');
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    artist.set({
+      profile: {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        phoneNumber: dto.phoneNumber,
+      },
+    });
+
+    await artist.save();
+
+    return artist.profile;
+  }
+
+  async getArtistProfile(artistId: string) {
+    const artist = await this.userModel
+      .findOne({ userId: artistId })
+      .select('+profile');
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    return artist.profile || {};
   }
 }

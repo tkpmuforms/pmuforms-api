@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsInt, IsOptional, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsInt,
+  IsOptional,
+  Min,
+  IsPhoneNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateBusinessNameDto {
@@ -45,4 +52,19 @@ export class SearchMyArtistsQueryParamsDto {
   @IsOptional()
   @IsString()
   name?: string;
+}
+
+export class UpdateProfileDto {
+  @IsString()
+  @IsNotEmpty()
+  firstName: string;
+
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsPhoneNumber()
+  phoneNumber?: string;
 }
