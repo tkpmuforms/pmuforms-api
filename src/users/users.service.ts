@@ -333,7 +333,6 @@ export class UsersService {
   }
 
   async updateProfile(artistId: string, dto: UpdateProfileDto) {
-    console.log({ dto });
     const artist = await this.userModel
       .findOne({ userId: artistId })
       .select('+profile');
