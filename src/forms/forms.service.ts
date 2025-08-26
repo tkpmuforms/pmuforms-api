@@ -272,6 +272,7 @@ export class FormsService {
       ...newTemplateDocBody,
       id: newTemplateId,
       rootFormTemplateId: newRootFormTemplateId,
+      updatedAt: new Date(),
     };
 
     const newFormTemplate =

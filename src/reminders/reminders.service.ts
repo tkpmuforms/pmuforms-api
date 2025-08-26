@@ -25,6 +25,8 @@ export class RemindersService {
 
     await reminder.save();
 
+    // schedule reminder with id as idempkey
+
     return reminder;
   }
 
@@ -112,6 +114,8 @@ export class RemindersService {
     });
 
     await reminder.save();
+
+    // reschedule reminder
 
     return reminder;
   }

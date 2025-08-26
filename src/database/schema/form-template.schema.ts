@@ -81,6 +81,8 @@ export class FormTemplate {
 
   @Prop()
   deletedAt: Date;
+
+  updatedAt: Date;
 }
 
 export const FormTemplateSchema = SchemaFactory.createForClass(FormTemplate);
