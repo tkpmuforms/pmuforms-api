@@ -17,6 +17,7 @@ import {
   UpdateFcmTokenDto,
   SearchMyArtistsQueryParamsDto,
   TestPushNotificationDto,
+  UpdateProfileDto,
 } from './dto';
 
 @Controller('api/artists')
@@ -82,6 +83,13 @@ export class UsersController {
     return { metrics };
   }
 
+  @Roles(UserRole.ARTIST)
+  @Get('/my-profile')
+  async getArtistProfile(@GetUser('userId') artistId: string) {
+    const profile = await this.usersService.getArtistProfile(artistId);
+    return { profile };
+  }
+
   @Get('/:artistId')
   async getAnArtist(@Param('artistId') artistId: string) {
     const artist = await this.usersService.getAnArtistById(artistId);
@@ -108,5 +116,15 @@ export class UsersController {
     );
 
     return { artist: artistDoc };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Patch('/my-profile/update')
+  async updateProfile(
+    @GetUser('userId') artistId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    const profile = await this.usersService.updateProfile(artistId, dto);
+    return { profile };
   }
 }

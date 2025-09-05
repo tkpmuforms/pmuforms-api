@@ -82,24 +82,13 @@ export class FormsService {
     return form;
   }
 
-  async getFormTemplatesForAppointment(appointmentId: string) {
-    const appointment = await this.appointmentModel.findOne({
-      id: appointmentId,
-    });
-
-    if (!appointment) {
-      throw new NotFoundException(
-        `appointment with id ${appointmentId} not found`,
-      );
-    }
-
-    // root form templates
+  async getFormTemplatesForServices(artistId: string, services: number[]) {
     const forms = await this.formTemplateModel.find({
       rootFormTemplateId: null,
       parentFormTemplateId: null,
       versionNumber: 0,
       services: {
-        $in: appointment.services,
+        $in: services,
       },
     });
 
@@ -108,7 +97,7 @@ export class FormsService {
     // replace root forms with the most recent version if it exists
     for (const f of forms) {
       const latestFormVersion = await this.getLatestFormTemplateByArtist(
-        appointment.artistId,
+        artistId,
         f.id,
       );
 
@@ -125,7 +114,31 @@ export class FormsService {
       }
     }
 
-    const metadata = paginationMetaGenerator(forms.length, 1, forms.length);
+    return validForms;
+  }
+
+  async getFormTemplatesForAppointment(appointmentId: string) {
+    const appointment = await this.appointmentModel.findOne({
+      id: appointmentId,
+    });
+
+    if (!appointment) {
+      throw new NotFoundException(
+        `appointment with id ${appointmentId} not found`,
+      );
+    }
+
+    // root form templates
+    const validForms = await this.getFormTemplatesForServices(
+      appointment.artistId,
+      appointment.services,
+    );
+
+    const metadata = paginationMetaGenerator(
+      validForms.length,
+      1,
+      validForms.length,
+    );
 
     return { metadata, forms: validForms };
   }
@@ -259,6 +272,8 @@ export class FormsService {
       ...newTemplateDocBody,
       id: newTemplateId,
       rootFormTemplateId: newRootFormTemplateId,
+      createdAt: undefined,
+      updatedAt: undefined,
     };
 
     const newFormTemplate =

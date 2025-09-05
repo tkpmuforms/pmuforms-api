@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { FormsService } from './forms.service';
 import { GetUser, Roles } from 'src/auth/decorator';
@@ -19,6 +20,7 @@ import {
   UpdateSectionDataDto,
 } from './dto';
 import { UpdateServicesDto } from 'src/services/dto';
+import { ParseServicesPipe } from './pipes/parse-services.pipe';
 
 @Controller('api/forms')
 export class FormsController {
@@ -35,6 +37,20 @@ export class FormsController {
   @Get('/my-forms')
   async getArtistFormTemplate(@GetUser() artist: UserDocument) {
     const forms = await this.formsService.getArtistFormTemplates(artist);
+
+    return { forms };
+  }
+
+  @Roles(UserRole.ARTIST)
+  @Get('/my-service-forms')
+  async getArtistFormTemplateForServices(
+    @GetUser() artist: UserDocument,
+    @Query('services', ParseServicesPipe) services: number[],
+  ) {
+    const forms = await this.formsService.getFormTemplatesForServices(
+      artist.userId,
+      services,
+    );
 
     return { forms };
   }

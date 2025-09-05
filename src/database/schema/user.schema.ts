@@ -3,8 +3,8 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
-export class Service {
+@Schema({ _id: false })
+class Service {
   @Prop()
   id: number;
 
@@ -12,10 +12,20 @@ export class Service {
   service: string;
 }
 
-export const ServiceSchema = SchemaFactory.createForClass(Service);
+@Schema({ _id: false })
+export class Profile {
+  @Prop()
+  firstName: string;
+
+  @Prop()
+  lastName: string;
+
+  @Prop()
+  phoneNumber: string;
+}
 
 @Schema({ timestamps: true })
-export class User {
+class User {
   @Prop()
   userId: string;
 
@@ -49,7 +59,7 @@ export class User {
   @Prop()
   businessUri: string;
 
-  @Prop({ type: [ServiceSchema] })
+  @Prop({ type: [Service] })
   services: Service[];
 
   @Prop()
@@ -57,6 +67,12 @@ export class User {
 
   @Prop()
   signature_url: string;
+
+  @Prop()
+  website: string;
+
+  @Prop({ select: false, type: Profile })
+  profile: Profile;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
