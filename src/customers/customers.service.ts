@@ -436,13 +436,13 @@ export class CustomersService {
   }
 
   async createCustomer(artistId: string, dto: CreateCustomerDto) {
-    const user = await this.userModel.findOne({
-      _id: new Types.ObjectId(artistId),
-    });
+    // const user = await this.userModel.findOne({
+    //   _id: new Types.ObjectId(artistId),
+    // });
 
-    if (!user) {
-      throw new NotFoundException(`user not found`);
-    }
+    // if (!user) {
+    //   throw new NotFoundException(`user not found`);
+    // }
 
     let firebaseUser: UserRecord | undefined;
     if (dto.email) {
@@ -474,8 +474,8 @@ export class CustomersService {
     }
 
     await this.relationshipModel.findOneAndUpdate(
-      { artistId: user.userId, customerId: customer.id },
-      { artistId: user.userId, customerId: customer.id },
+      { artistId, customerId: customer.id },
+      { artistId, customerId: customer.id },
       { upsert: true },
     );
     return customer;
