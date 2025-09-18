@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import firebaseAdmin from 'firebase-admin';
@@ -11,6 +12,8 @@ import { AppConfigService } from 'src/config/config.service';
 
 @Injectable()
 export class FirebaseService {
+  readonly logger = new Logger(FirebaseService.name);
+
   constructor(private config: AppConfigService) {
     try {
       if (!firebaseAdmin.apps.length) {
@@ -99,6 +102,27 @@ export class FirebaseService {
         }
       }
       console.error({ error });
+      throw new InternalServerErrorException('Something went wrong');
+    }
+  }
+
+  async createUser(params: {
+    email: string;
+    password?: string;
+    displayName: string;
+  }) {
+    try {
+      const { email, password, displayName } = params;
+      const user = await firebaseAdmin.auth().createUser({
+        email,
+        password,
+        displayName,
+      });
+      return user;
+    } catch (error) {
+      this.logger.error(
+        `::: Failed to create user with ${params.email}, cause => ${error}`,
+      );
       throw new InternalServerErrorException('Something went wrong');
     }
   }

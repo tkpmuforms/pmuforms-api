@@ -233,15 +233,19 @@ export class FilledFormsService {
     await appointmentDoc.populate('customer');
     await appointmentDoc.populate('serviceDetails');
 
-    await this.utilsService.sendPushNotification({
-      title: 'New Appointment Form Submitted!',
-      body: `Your client has completed their appointment forms for their upcoming service. Review their details and get ready to create something amazing!`,
-      fcmToken: appointmentDoc.artist.fcmToken,
-    });
+    this.utilsService
+      .sendPushNotification({
+        title: 'New Appointment Form Submitted!',
+        body: `Your client has completed their appointment forms for their upcoming service. Review their details and get ready to create something amazing!`,
+        fcmToken: appointmentDoc.artist.fcmToken,
+      })
+      .catch((error) =>
+        console.error('Unable to send push notification', { error }),
+      );
 
     const [firstName, lastName] = appointmentDoc.customer.name.split(' ');
 
-    const customerName = `${firstName} ${lastName?.slice(0, 1) || ''}.`;
+    const customerName = `${firstName || ''} ${lastName?.slice(0, 1) || ''}.`;
 
     let servicesList = '';
     for (const service of appointmentDoc.serviceDetails) {

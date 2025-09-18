@@ -84,12 +84,14 @@ export class AppointmentsController {
   async bookAppointmentAsArtist(
     @Body() dto: BookAnApppointmentAsArtistDto,
     @GetUser() artist: UserDocument,
+    @Query('notify_customer') notifyCustomerQ: string,
   ) {
     const appointment = await this.appointmentsService.bookAppointment(
       dto.appointmentDate,
       artist.userId,
       dto.customerId,
       dto.services,
+      { notifyCustomer: notifyCustomerQ === '1' },
     );
 
     return { appointment };
