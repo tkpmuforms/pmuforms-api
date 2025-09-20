@@ -20,6 +20,7 @@ import { DateTime } from 'luxon';
 import { FormsService } from 'src/forms/forms.service';
 import { FilledFormStatus } from 'src/enums';
 import { UtilsService } from 'src/utils/utils.service';
+import { AppConfigService } from 'src/config/config.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -27,13 +28,14 @@ export class AppointmentsService {
 
   constructor(
     private utilsService: UtilsService,
+    private readonly formsService: FormsService,
+    private readonly config: AppConfigService,
     @InjectModel('appointments')
     private appointmentModel: Model<AppointmentDocument>,
     @InjectModel('relationships')
     private relationshipModel: Model<RelationshipDocument>,
     @InjectModel('users')
     private userModel: Model<UserDocument>,
-    private readonly formsService: FormsService,
     @InjectModel('filled-forms')
     private filledFormModel: Model<FilledFormDocument>,
   ) {}
@@ -202,7 +204,11 @@ export class AppointmentsService {
 
     const [firstName] = appointmentDoc.customer.name.split(' ');
 
-    const appointmentUrl = ``;
+    const DOMAIN = this.config.get('CLIENT_BASE_URL');
+
+    const businessUri = appointmentDoc.artist.businessUri;
+
+    const appointmentUrl = `${DOMAIN}/${businessUri}/appointment/${appointmentDoc.id}`;
 
     const customerName = `${firstName || ''}`;
 

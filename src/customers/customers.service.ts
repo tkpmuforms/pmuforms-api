@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, RootFilterQuery, PipelineStage, Types } from 'mongoose';
+import { Model, RootFilterQuery, PipelineStage } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   AppointmentDocument,
@@ -450,6 +450,7 @@ export class CustomersService {
         dto.email.toLowerCase(),
       );
       if (!firebaseUser) {
+        console.log(`\nfirebase user does not exist. creating user....`);
         firebaseUser = await this.firebaseService.createUser({
           email: dto.email.toLowerCase(),
           displayName: dto.name,
