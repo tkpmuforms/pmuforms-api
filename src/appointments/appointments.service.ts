@@ -206,9 +206,7 @@ export class AppointmentsService {
 
     const DOMAIN = this.config.get('CLIENT_BASE_URL');
 
-    const businessUri = appointmentDoc.artist.businessUri;
-
-    const appointmentUrl = `${DOMAIN}/${businessUri}/appointment/${appointmentDoc.id}`;
+    const appointmentUrl = `${DOMAIN}/customer/forms/appointment/${appointment.id}`;
 
     const customerName = `${firstName || ''}`;
 
