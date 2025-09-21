@@ -82,6 +82,9 @@ export class AuthService {
       throw new UnauthorizedException('Email not verified');
     }
 
+    artist.emailVerified = email_verified;
+    await artist.save();
+
     if (userCreated) {
       // send welcome email
       this.sendWelcomeEmail(artist.email, artist.businessName);
@@ -135,6 +138,9 @@ export class AuthService {
     if (!email_verified) {
       throw new UnauthorizedException('Email not verified');
     }
+
+    customer.emailVerified = email_verified;
+    await customer.save();
 
     // check if customer has an artist account
     const customerArtistAccount = await this.userModel.findOne({
