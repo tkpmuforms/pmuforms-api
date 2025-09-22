@@ -47,6 +47,9 @@ class User {
   @Prop({ required: true })
   email: string;
 
+  @Prop()
+  emailVerified: boolean;
+
   @Prop({ type: Date, default: null })
   lastLoggedIn: Date;
 

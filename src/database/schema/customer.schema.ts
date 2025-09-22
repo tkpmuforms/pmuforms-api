@@ -3,7 +3,7 @@ import { HydratedDocument } from 'mongoose';
 
 export type CustomerDocument = HydratedDocument<Customer>;
 
-@Schema()
+@Schema({ _id: false })
 export class Info {
   @Prop()
   age: number;
@@ -83,6 +83,9 @@ export class Customer {
 
   @Prop()
   email: string;
+
+  @Prop()
+  emailVerified: boolean;
 
   @Prop()
   isActive: boolean;

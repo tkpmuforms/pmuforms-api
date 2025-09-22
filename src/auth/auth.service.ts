@@ -69,6 +69,7 @@ export class AuthService {
       artist = await this.userModel.create({
         userId: artistId,
         email,
+        emailVerified: email_verified,
         businessName: name ?? 'New Business',
         businessUri: await this.util.generateBusinessUri(
           name ?? `New Business ${Date.now()}`,
@@ -76,6 +77,13 @@ export class AuthService {
         ),
       });
     }
+
+    if (!email_verified) {
+      throw new UnauthorizedException('Email not verified');
+    }
+
+    artist.emailVerified = email_verified;
+    await artist.save();
 
     if (userCreated) {
       // send welcome email
@@ -90,10 +98,6 @@ export class AuthService {
     const auth = await this.firebaseService.verifyIdToken(accessToken);
     let userCreated = false;
     const { uid: customerId, email, name, email_verified } = auth;
-
-    if (!email_verified) {
-      throw new UnauthorizedException('Email not verified');
-    }
 
     let artist: UserDocument | null = null;
 
@@ -118,6 +122,7 @@ export class AuthService {
         email,
         name: name,
         info: { client_name: name },
+        emailVerified: email_verified,
       });
     }
 
@@ -130,10 +135,18 @@ export class AuthService {
       );
     }
 
+    if (!email_verified) {
+      throw new UnauthorizedException('Email not verified');
+    }
+
+    customer.emailVerified = email_verified;
+    await customer.save();
+
     // check if customer has an artist account
     const customerArtistAccount = await this.userModel.findOne({
       userId: customerId,
     });
+
     if (customerArtistAccount) {
       customer.artistUri = customerArtistAccount.businessUri;
       await customer.save();

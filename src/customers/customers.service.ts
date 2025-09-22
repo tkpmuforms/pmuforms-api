@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, RootFilterQuery, PipelineStage, Types } from 'mongoose';
+import { Model, RootFilterQuery, PipelineStage } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   AppointmentDocument,
@@ -26,6 +26,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { FilledFormStatus } from 'src/enums';
+import { UserRecord } from 'firebase-admin/auth';
 
 @Injectable()
 export class CustomersService {
@@ -443,13 +444,30 @@ export class CustomersService {
     //   throw new NotFoundException(`user not found`);
     // }
 
+    let firebaseUser: UserRecord | undefined;
+    if (dto.email) {
+      firebaseUser = await this.firebaseService.getUserByEmail(
+        dto.email.toLowerCase(),
+      );
+      if (!firebaseUser) {
+        console.log(`\nfirebase user does not exist. creating user....`);
+        firebaseUser = await this.firebaseService.createUser({
+          email: dto.email.toLowerCase(),
+          displayName: dto.name,
+        });
+      }
+    }
+
     let customer = await this.customerModel.findOne({
+      id: firebaseUser.uid ?? undefined,
       email: dto?.email,
     });
 
+    const customerId = customer?.id ?? firebaseUser?.uid ?? randomUUID();
+
     if (!customer) {
       customer = await this.customerModel.create({
-        id: randomUUID(),
+        id: customerId,
         email: dto?.email ?? undefined,
         name: dto.name,
         info: { client_name: dto.name, cell_phone: dto?.phone ?? undefined },
