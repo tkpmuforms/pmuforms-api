@@ -1,6 +1,9 @@
 import {
+  BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,17 +19,23 @@ import { DateTime } from 'luxon';
 import { UtilsService } from 'src/utils/utils.service';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { RevenueCatSubcriptionEvent } from './subscription.event';
+import { StripeService } from 'src/stripe/stripe.service';
+import Stripe from 'stripe';
+import { CreateStripeSubscriptionDto } from './dto';
 
 @Injectable()
 export class SubscriptionService {
   private REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
   private REVENUECAT_API_KEY: string;
+  private readonly logger = new Logger(SubscriptionService.name);
 
   constructor(
     @InjectModel('users') private userModel: Model<UserDocument>,
+    @Inject('STRIPE_CLIENT') private stripe: Stripe,
     private configService: AppConfigService,
     private utilsService: UtilsService,
     private eventEmitter: EventEmitter2,
+    private stripeService: StripeService,
   ) {
     this.REVENUECAT_API_KEY = this.configService.get('REVENUECAT_API_KEY');
   }
@@ -68,32 +77,6 @@ export class SubscriptionService {
     );
   }
 
-  private async getUserSubcriptionInfo(userId: string) {
-    try {
-      const axios = this.revenueCatAxiosInstance();
-      const res = await axios.get<GetSubscriberResponse>(
-        `/subscribers/${userId}`,
-      );
-      return res.data;
-    } catch (e) {
-      console.log(e);
-      throw new InternalServerErrorException('Unable to get subscription');
-    }
-  }
-
-  async handleRevenueCatSubscription(payload: RevCatWebhookPayload) {
-    this.eventEmitter.emit(
-      'revenuecat.subscription.webhook',
-      new RevenueCatSubcriptionEvent({ webhookPayload: payload }),
-    );
-
-    return { message: 'success' };
-  }
-
-  async refreshSubscriptionStatus(userId: string) {
-    await this.updateSubscriptionStatus(userId);
-  }
-
   private async firstTimeSubscriberEmail(email: string, businessName?: string) {
     const businessNameToUse =
       !businessName || businessName === 'New Business' ? '' : businessName;
@@ -127,8 +110,36 @@ export class SubscriptionService {
     });
   }
 
+  private async getUserSubcriptionInfo(userId: string) {
+    try {
+      const axios = this.revenueCatAxiosInstance();
+      const res = await axios.get<GetSubscriberResponse>(
+        `/subscribers/${userId}`,
+      );
+      return res.data;
+    } catch (e) {
+      console.log(e);
+      throw new InternalServerErrorException('Unable to get subscription');
+    }
+  }
+
+  async handleRevenueCatSubscription(payload: RevCatWebhookPayload) {
+    this.eventEmitter.emit(
+      'revenuecat.subscription.webhook',
+      new RevenueCatSubcriptionEvent({ webhookPayload: payload }),
+    );
+
+    return { message: 'success' };
+  }
+
+  async refreshSubscriptionStatus(userId: string) {
+    await this.updateSubscriptionStatus(userId);
+  }
+
   @OnEvent('revenuecat.subscription.webhook', { async: true })
-  async handleRevCatSubscription(eventPayload: RevenueCatSubcriptionEvent) {
+  private async handleRevCatSubscription(
+    eventPayload: RevenueCatSubcriptionEvent,
+  ) {
     const {
       payload: { webhookPayload },
     } = eventPayload;
@@ -147,6 +158,218 @@ export class SubscriptionService {
         throw new NotFoundException(`User with id ${userId} not found`);
       }
       await this.firstTimeSubscriberEmail(user.email, user.businessName);
+    }
+  }
+
+  async getOrCreateStripeCustomerId(userId: string) {
+    const artist = await this.userModel.findOne({ userId });
+
+    if (!artist) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+
+    if (!artist.stripeCustomerId) {
+      const stripeCustomer = await this.stripe.customers.create({
+        email: artist.email,
+        name: artist.businessName,
+      });
+
+      artist.stripeCustomerId = stripeCustomer.id;
+      await artist.save();
+    }
+
+    return artist.stripeCustomerId;
+  }
+
+  async addStripePaymentMethod(artistId: string, paymentMethodId: string) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    // Attach PM
+    await this.stripe.paymentMethods.attach(paymentMethodId, {
+      customer: stripeCustomerId,
+    });
+
+    // Set as default
+    await this.stripe.customers.update(stripeCustomerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+
+    return { success: true };
+  }
+
+  async createStripeSubscription(
+    artistId: string,
+    dto: CreateStripeSubscriptionDto,
+  ) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+    const { priceId, paymentMethodId } = dto;
+    const existingSubs = await this.stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: 'all',
+      limit: 1,
+    });
+
+    if (paymentMethodId) {
+      await this.stripeService.attachPaymentMethodToCustomer(
+        paymentMethodId,
+        stripeCustomerId,
+      );
+
+      // Update customer to set this PM as default
+      await this.stripe.customers.update(stripeCustomerId, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      });
+    }
+
+    const hasSubscribedBefore = existingSubs.data.length > 0;
+
+    return this.stripe.subscriptions.create({
+      customer: stripeCustomerId,
+      items: [{ price: priceId }],
+      trial_period_days: !hasSubscribedBefore ? 7 : undefined,
+      expand: ['latest_invoice.payment_intent'],
+    });
+  }
+
+  async updateStripeSubscription(subscriptionId: string, newPriceId: string) {
+    const subscription =
+      await this.stripe.subscriptions.retrieve(subscriptionId);
+
+    return this.stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: false,
+      proration_behavior: 'always_invoice', // handle billing adjustments
+      items: [
+        {
+          id: subscription.items.data[0].id,
+          price: newPriceId,
+        },
+      ],
+    });
+  }
+
+  async detachPaymentMethod(paymentMethodId: string) {
+    return this.stripe.paymentMethods.detach(paymentMethodId);
+  }
+
+  async listStripePaymentMethods(artistId: string) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    return this.stripe.paymentMethods.list({
+      customer: stripeCustomerId,
+      type: 'card',
+    });
+  }
+
+  async listCustomerTransactions(customerId: string) {
+    const invoices = await this.stripe.invoices.list({
+      customer: customerId,
+      limit: 10, // or paginate
+    });
+
+    // Simplify response
+    return invoices.data.map((inv) => ({
+      id: inv.id,
+      amount: inv.amount_paid / 100, // convert cents → dollars
+      currency: inv.currency,
+      status: inv.status, // e.g. paid, open, uncollectible
+      created: new Date(inv.created * 1000),
+      hosted_invoice_url: inv.hosted_invoice_url, // Stripe-hosted invoice page
+    }));
+  }
+
+  async handleStripeWebhookEvent(
+    signature: string | undefined,
+    rawBody: Buffer | undefined,
+  ) {
+    if (!signature) {
+      this.logger.warn('Webhook request missing Stripe signature header.');
+      throw new BadRequestException('Missing Stripe signature header.');
+    }
+
+    if (!rawBody) {
+      this.logger.error(
+        'Webhook request missing raw body. Check server configuration.',
+      );
+      throw new BadRequestException('Missing raw request body.');
+    }
+
+    const event = await this.stripeService.constructStripeWebhookEvent(
+      signature,
+      rawBody,
+    );
+
+    try {
+      // invoice.payment_succeeded;
+      // invoice.payment_failed;
+      // customer.subscription.updated;
+      // customer.subscription.deleted;
+      switch (event.type) {
+        // === Subscription Lifecycle & Initial Payment ===
+        // case 'invoice.paid':
+        //   await this.handleInvoicePaid(stripeEventObject as Stripe.Invoice);
+        //   break;
+        // case 'invoice.payment_failed':
+        //   await this.handleInvoicePaymentFailed(
+        //     stripeEventObject as Stripe.Invoice,
+        //   );
+        //   break;
+        // case 'customer.subscription.updated':
+        //   await this.handleCustomerSubscriptionUpdated(
+        //     stripeEventObject as Stripe.Subscription,
+        //   );
+        //   break;
+        // case 'customer.subscription.deleted': // Handles cancellations
+        //   await this.handleCustomerSubscriptionDeleted(
+        //     stripeEventObject as Stripe.Subscription,
+        //   );
+        //   break;
+        // // === Payment Method Management ===
+        // case 'setup_intent.succeeded':
+        //   await this.handleSetupIntentSucceeded(
+        //     stripeEventObject as Stripe.SetupIntent,
+        //   );
+        //   break;
+        // case 'customer.updated':
+        //   await this.handleCustomerUpdated(
+        //     stripeEventObject as Stripe.Customer,
+        //   );
+        //   break;
+        // case 'payment_intent.succeeded':
+        //   await this.handleSuccesfullCharge(
+        //     stripeEventObject as Stripe.PaymentIntent,
+        //   );
+        //   break;
+        // case 'payment_intent.payment_failed':
+        //   await this.handleFailedCharge(
+        //     stripeEventObject as Stripe.PaymentIntent,
+        //   );
+        //   break;
+        // === Other useful events you might add later ===
+        // case 'customer.subscription.trial_will_end':
+        //   // Handle trial ending soon notifications
+        //   break;
+        // case 'payment_method.attached':
+        //   // Handle payment method attachment if not using SetupIntents exclusively
+        //   break;
+        // case 'payment_method.detached':
+        //   // Handle payment method detachment
+        //   break;
+        default:
+          this.logger.log(`Unhandled event type: ${event.type}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing event ${event.id} (type: ${event.type}): ${error.message}`,
+        error.stack,
+      );
+      // To prevent Stripe from retrying indefinitely for an error within a specific handler,
+      // you might choose not to re-throw the error here, or re-throw a specific type
+      // that your global exception filter handles differently for webhooks.
+      // For now, we'll re-throw to indicate a processing failure.
+      // If this error is thrown, Stripe will retry the webhook.
+      throw new BadRequestException(
+        `Error processing webhook event ${event.type}: ${error.message}`,
+      );
     }
   }
 }

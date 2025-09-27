@@ -209,7 +209,7 @@ export class AuthService {
   }
 
   async me(userId: string) {
-    const user = await this.userModel.findById(userId);
+    const user = await this.userModel.findById(userId).select('+profile');
     if (!user) {
       throw new NotFoundException('User not found');
     }

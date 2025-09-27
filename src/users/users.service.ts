@@ -343,9 +343,12 @@ export class UsersService {
 
     artist.set({
       profile: {
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phoneNumber: dto.phoneNumber,
+        firstName: dto.firstName ?? artist.profile?.firstName,
+        lastName: dto.lastName ?? artist.profile?.lastName,
+        phoneNumber: dto.phoneNumber ?? artist.profile?.phoneNumber,
+        avatarUrl: !!dto.removeAvatar
+          ? undefined
+          : (dto.avatarUrl ?? artist.profile?.avatarUrl),
       },
     });
 

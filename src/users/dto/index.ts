@@ -5,6 +5,8 @@ import {
   IsOptional,
   Min,
   IsPhoneNumber,
+  IsUrl,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -67,4 +69,13 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsPhoneNumber()
   phoneNumber?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  avatarUrl?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  removeAvatar?: boolean;
 }
