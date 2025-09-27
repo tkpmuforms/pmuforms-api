@@ -21,6 +21,7 @@ import { UtilsModule } from './utils/utils.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { SubscriptionGuard } from './subscription/subscription.guard';
 import { RemindersModule } from './reminders/reminders.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { RemindersModule } from './reminders/reminders.module';
     UtilsModule,
     SubscriptionModule,
     RemindersModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [
