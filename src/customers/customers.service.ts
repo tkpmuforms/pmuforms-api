@@ -344,22 +344,29 @@ export class CustomersService {
   ) {
     const customer = await this.customerModel.findOne({ id: customerId });
 
+    if (!customer) {
+      throw new NotFoundException(`customer with id ${customerId} not found`);
+    }
+
     //update the details
     const name = `${personalDetails.firstName} ${personalDetails.lastName}`;
-    customer.name = name;
-    customer.info.client_name = name;
-    customer.info.date_of_birth = personalDetails.dob.toISOString();
-    customer.info.home_address = personalDetails.homeAddress;
-    customer.info.cell_phone = personalDetails.primaryPhone;
-    customer.info.referred = personalDetails.referralSource;
-    customer.info.emergency_contact_name = personalDetails.emergencyContactName;
-    customer.info.emergency_contact_phone =
-      personalDetails.emergencyContactPhone;
-    customer.info.avatar_url = personalDetails.avatarUrl;
+    const updateCustomerData = {
+      name,
+      info: {
+        client_name: name,
+        date_of_birth: personalDetails.dob.toISOString(),
+        home_address: personalDetails.homeAddress,
+        cell_phone: personalDetails.primaryPhone,
+        referred: personalDetails.referralSource,
+        emergency_contact_name: personalDetails.emergencyContactName,
+        emergency_contact_phone: personalDetails.emergencyContactPhone,
+        avatar_url: personalDetails.avatarUrl,
+      }
+    }
 
-    await customer.save();
+    const updatedCustomer = await this.customerModel.findOneAndUpdate({ id: customerId }, updateCustomerData);
 
-    return customer;
+    return updatedCustomer;
   }
 
   async updateCustomerPersonalDetails(
