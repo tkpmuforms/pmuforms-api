@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -20,18 +19,21 @@ import { UtilsService } from 'src/utils/utils.service';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { RevenueCatSubcriptionEvent } from './subscription.event';
 import { StripeService } from 'src/stripe/stripe.service';
-import Stripe from 'stripe';
-import { CreateStripeSubscriptionDto } from './dto';
+import {
+  CreateStripeSubscriptionDto,
+  AddStripePaymentMethodDto,
+  ChangeSubscriptionPlanDto,
+  DetachStripePaymentMethodDto,
+} from './dto';
 
 @Injectable()
 export class SubscriptionService {
+  private readonly logger = new Logger(SubscriptionService.name);
   private REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
   private REVENUECAT_API_KEY: string;
-  private readonly logger = new Logger(SubscriptionService.name);
 
   constructor(
     @InjectModel('users') private userModel: Model<UserDocument>,
-    @Inject('STRIPE_CLIENT') private stripe: Stripe,
     private configService: AppConfigService,
     private utilsService: UtilsService,
     private eventEmitter: EventEmitter2,
@@ -77,6 +79,32 @@ export class SubscriptionService {
     );
   }
 
+  private async getUserSubcriptionInfo(userId: string) {
+    try {
+      const axios = this.revenueCatAxiosInstance();
+      const res = await axios.get<GetSubscriberResponse>(
+        `/subscribers/${userId}`,
+      );
+      return res.data;
+    } catch (e) {
+      console.log(e);
+      throw new InternalServerErrorException('Unable to get subscription');
+    }
+  }
+
+  async handleRevenueCatSubscription(payload: RevCatWebhookPayload) {
+    this.eventEmitter.emit(
+      'revenuecat.subscription.webhook',
+      new RevenueCatSubcriptionEvent({ webhookPayload: payload }),
+    );
+
+    return { message: 'success' };
+  }
+
+  async refreshSubscriptionStatus(userId: string) {
+    await this.updateSubscriptionStatus(userId);
+  }
+
   private async firstTimeSubscriberEmail(email: string, businessName?: string) {
     const businessNameToUse =
       !businessName || businessName === 'New Business' ? '' : businessName;
@@ -110,36 +138,8 @@ export class SubscriptionService {
     });
   }
 
-  private async getUserSubcriptionInfo(userId: string) {
-    try {
-      const axios = this.revenueCatAxiosInstance();
-      const res = await axios.get<GetSubscriberResponse>(
-        `/subscribers/${userId}`,
-      );
-      return res.data;
-    } catch (e) {
-      console.log(e);
-      throw new InternalServerErrorException('Unable to get subscription');
-    }
-  }
-
-  async handleRevenueCatSubscription(payload: RevCatWebhookPayload) {
-    this.eventEmitter.emit(
-      'revenuecat.subscription.webhook',
-      new RevenueCatSubcriptionEvent({ webhookPayload: payload }),
-    );
-
-    return { message: 'success' };
-  }
-
-  async refreshSubscriptionStatus(userId: string) {
-    await this.updateSubscriptionStatus(userId);
-  }
-
   @OnEvent('revenuecat.subscription.webhook', { async: true })
-  private async handleRevCatSubscription(
-    eventPayload: RevenueCatSubcriptionEvent,
-  ) {
+  async handleRevCatSubscription(eventPayload: RevenueCatSubcriptionEvent) {
     const {
       payload: { webhookPayload },
     } = eventPayload;
@@ -161,19 +161,18 @@ export class SubscriptionService {
     }
   }
 
-  async getOrCreateStripeCustomerId(userId: string) {
-    const artist = await this.userModel.findOne({ userId });
+  private async getOrCreateStripeCustomerId(userId: string) {
+    const artist = await this.userModel
+      .findOne({ userId })
+      .select('+stripeCustomerId');
 
     if (!artist) {
       throw new NotFoundException(`User with id ${userId} not found`);
     }
 
     if (!artist.stripeCustomerId) {
-      const stripeCustomer = await this.stripe.customers.create({
-        email: artist.email,
-        name: artist.businessName,
-      });
-
+      const stripeCustomer =
+        await this.stripeService.createStripeCustomer(artist);
       artist.stripeCustomerId = stripeCustomer.id;
       await artist.save();
     }
@@ -181,20 +180,62 @@ export class SubscriptionService {
     return artist.stripeCustomerId;
   }
 
-  async addStripePaymentMethod(artistId: string, paymentMethodId: string) {
+  async addStripePaymentMethod(
+    artistId: string,
+    { paymentMethodId }: AddStripePaymentMethodDto,
+  ) {
     const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
 
-    // Attach PM
-    await this.stripe.paymentMethods.attach(paymentMethodId, {
-      customer: stripeCustomerId,
-    });
+    await this.stripeService.attachPaymentMethodToCustomer(
+      paymentMethodId,
+      stripeCustomerId,
+    );
 
-    // Set as default
-    await this.stripe.customers.update(stripeCustomerId, {
-      invoice_settings: { default_payment_method: paymentMethodId },
-    });
+    // Update customer to set this PM as default
+    await this.stripeService.updateDefaultPaymentMethod(
+      stripeCustomerId,
+      paymentMethodId,
+    );
+    return { success: true, message: 'Payment method added successfully' };
+  }
 
-    return { success: true };
+  async detachPaymentMethod({ paymentMethodId }: DetachStripePaymentMethodDto) {
+    return this.stripeService.detachPaymentMethod(paymentMethodId);
+  }
+
+  async listStripePaymentMethods(artistId: string) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    return this.stripeService.listCustomerPaymentMethods({
+      stripeCustomerId,
+      type: 'card',
+    });
+  }
+
+  async listStripeCustomerTransactions(artistId: string) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    const invoices = await this.stripeService.listCustomerTransactions(
+      { stripeCustomerId },
+      { limit: 10 },
+    );
+
+    const invoicesResponse = invoices.data.map((inv) => ({
+      id: inv.id,
+      amount: inv.amount_paid / 100, // convert cents → dollars
+      currency: inv.currency,
+      status: inv.status, // e.g. paid, open, uncollectible
+      created: new Date(inv.created * 1000),
+      hosted_invoice_url: inv.hosted_invoice_url,
+    }));
+
+    return {
+      invoices: invoicesResponse,
+      hasMore: invoices.has_more,
+      lastInvoiceId: invoices.data.length
+        ? invoices.data[invoices.data.length - 1].id
+        : null,
+    };
   }
 
   async createStripeSubscription(
@@ -202,12 +243,17 @@ export class SubscriptionService {
     dto: CreateStripeSubscriptionDto,
   ) {
     const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
     const { priceId, paymentMethodId } = dto;
-    const existingSubs = await this.stripe.subscriptions.list({
-      customer: stripeCustomerId,
-      status: 'all',
-      limit: 1,
-    });
+    // const existingSubs = await this.stripe.subscriptions.list({
+    //   customer: stripeCustomerId,
+    //   status: 'all',
+    //   limit: 1,
+    // });
+    const existingSubs = await this.stripeService.listCustomerSubscriptions(
+      { stripeCustomerId, status: 'all' },
+      { limit: 1 },
+    );
 
     if (paymentMethodId) {
       await this.stripeService.attachPaymentMethodToCustomer(
@@ -216,65 +262,84 @@ export class SubscriptionService {
       );
 
       // Update customer to set this PM as default
-      await this.stripe.customers.update(stripeCustomerId, {
-        invoice_settings: { default_payment_method: paymentMethodId },
-      });
+      await this.stripeService.updateDefaultPaymentMethod(
+        stripeCustomerId,
+        paymentMethodId,
+      );
     }
 
     const hasSubscribedBefore = existingSubs.data.length > 0;
 
-    return this.stripe.subscriptions.create({
-      customer: stripeCustomerId,
+    if (hasSubscribedBefore) {
+      this.logger.log(
+        `User ${artistId} IS NOT a first time subscriber- no trial period added.`,
+      );
+    }
+
+    const subscriptionResponse = this.stripeService.createStripeSubscription({
+      stripeCustomerId,
       items: [{ price: priceId }],
-      trial_period_days: !hasSubscribedBefore ? 7 : undefined,
+      trialPeriodDays: !hasSubscribedBefore ? 7 : undefined,
       expand: ['latest_invoice.payment_intent'],
     });
+    return subscriptionResponse;
   }
 
-  async updateStripeSubscription(subscriptionId: string, newPriceId: string) {
-    const subscription =
-      await this.stripe.subscriptions.retrieve(subscriptionId);
+  async changeSubscriptionPlan(
+    artistId: string,
+    dto: ChangeSubscriptionPlanDto,
+  ) {
+    const artist = await this.userModel.findOne({ userId: artistId });
 
-    return this.stripe.subscriptions.update(subscriptionId, {
-      cancel_at_period_end: false,
-      proration_behavior: 'always_invoice', // handle billing adjustments
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    if (!artist.stripeCustomerId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have a Stripe customer ID, create a subscription.`,
+      );
+    }
+
+    if (artist.activeStripePriceId === dto.newPriceId) {
+      this.logger.warn(
+        `Artist ${artistId} is already subscribed to price ${dto.newPriceId}. No change needed.`,
+      );
+      // Retrieve and return the current subscription as no change is made
+      return this.stripeService.getSubscription(artist.stripeSubscriptionId);
+    }
+
+    if (!artist.stripeSubscriptionId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have an active subscription to change, create a subscription.`,
+      );
+    }
+
+    if (dto.paymentMethodId) {
+      await this.stripeService.attachPaymentMethodToCustomer(
+        dto.paymentMethodId,
+        artist.stripeCustomerId,
+      );
+
+      // Update customer to set this PM as default
+      await this.stripeService.updateDefaultPaymentMethod(
+        artist.stripeCustomerId,
+        dto.paymentMethodId,
+      );
+    }
+
+    const updatedSubscription = await this.stripeService.updateSubscription({
+      subscriptionId: artist.stripeSubscriptionId,
+      cancelAtPeriodEnd: false,
+      prorationBehavior: 'always_invoice', // handle billing adjustments
       items: [
         {
-          id: subscription.items.data[0].id,
-          price: newPriceId,
+          price: dto.newPriceId,
         },
       ],
     });
-  }
 
-  async detachPaymentMethod(paymentMethodId: string) {
-    return this.stripe.paymentMethods.detach(paymentMethodId);
-  }
-
-  async listStripePaymentMethods(artistId: string) {
-    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
-
-    return this.stripe.paymentMethods.list({
-      customer: stripeCustomerId,
-      type: 'card',
-    });
-  }
-
-  async listCustomerTransactions(customerId: string) {
-    const invoices = await this.stripe.invoices.list({
-      customer: customerId,
-      limit: 10, // or paginate
-    });
-
-    // Simplify response
-    return invoices.data.map((inv) => ({
-      id: inv.id,
-      amount: inv.amount_paid / 100, // convert cents → dollars
-      currency: inv.currency,
-      status: inv.status, // e.g. paid, open, uncollectible
-      created: new Date(inv.created * 1000),
-      hosted_invoice_url: inv.hosted_invoice_url, // Stripe-hosted invoice page
-    }));
+    return updatedSubscription;
   }
 
   async handleStripeWebhookEvent(

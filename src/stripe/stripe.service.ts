@@ -71,15 +71,13 @@ export class StripeService {
     }
   }
 
-  async createAndSaveStripeCustomer(artist: UserDocument) {
+  async createStripeCustomer(artist: UserDocument) {
     try {
       const stripeCustomer = await this.stripe.customers.create({
         email: artist.email,
         name: artist.businessName,
       });
-
-      artist.stripeCustomerId = stripeCustomer.id;
-      await artist.save();
+      return stripeCustomer;
     } catch (error: unknown) {
       this.logger.error(
         `Error creating stripe customer- ${JSON.stringify(error)}`,
@@ -130,10 +128,15 @@ export class StripeService {
     }
   }
 
-  async getSubscription(subscriptionId: string) {
+  async getSubscription(
+    subscriptionId: string,
+    options?: { expand: string[] },
+  ) {
     try {
-      const subscription =
-        await this.stripe.subscriptions.retrieve(subscriptionId);
+      const subscription = await this.stripe.subscriptions.retrieve(
+        subscriptionId,
+        options,
+      );
       return subscription;
     } catch (error: unknown) {
       const message = (error as any)?.message ?? 'Error getting subscription';
