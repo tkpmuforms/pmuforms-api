@@ -73,7 +73,7 @@ export class AppointmentsService {
       .find(queryObject)
       .populate('filledForms', 'id status')
       .populate('serviceDetails', 'id service')
-      .sort({ appointmentDate: 'descending' })
+      .sort({ date: 'descending' })
       .skip(skip)
       .limit(limit);
     return { metadata, appointments };
@@ -98,7 +98,7 @@ export class AppointmentsService {
       .find(queryObject)
       .populate('filledForms', 'id status')
       .populate('serviceDetails', 'id service')
-      .sort({ appointmentDate: 'descending' })
+      .sort({ date: 'descending' })
       .skip(skip)
       .limit(limit);
     return { metadata, appointments };
