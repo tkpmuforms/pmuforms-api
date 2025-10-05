@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Headers,
+  Logger,
   Param,
   Post,
   RawBodyRequest,
@@ -12,10 +13,15 @@ import {
 import { SubscriptionService } from './subscription.service';
 import { GetUser, Public } from 'src/auth/decorator';
 import { RevenueCatWebhookGuard } from './revcat-webhook.guard';
-import { CreateStripeSubscriptionDto } from './dto';
+import {
+  AddStripePaymentMethodDto,
+  CreateStripeSubscriptionDto,
+  DetachStripePaymentMethodDto,
+} from './dto';
 
 @Controller('api/subscriptions')
 export class SubscriptionController {
+  private logger = new Logger(SubscriptionController.name);
   constructor(private subscriptionService: SubscriptionService) {}
 
   @Public()
@@ -42,12 +48,62 @@ export class SubscriptionController {
     return subscription;
   }
 
+  @Get('/stripe/list-payment-methods')
+  async listPayment(@GetUser('userId') artistId: string) {
+    const subscription =
+      await this.subscriptionService.listStripePaymentMethods(artistId);
+
+    return subscription;
+  }
+
+  @Post('/stripe/add-payment-method')
+  async addPaymentMethod(
+    @GetUser('userId') artistId: string,
+    @Body() dto: AddStripePaymentMethodDto,
+  ) {
+    const subscription = await this.subscriptionService.addStripePaymentMethod(
+      artistId,
+      dto,
+    );
+
+    return subscription;
+  }
+
+  @Post('/stripe/detach-payment-method')
+  async detachPaymentMethod(
+    @GetUser('userId') artistId: string,
+    @Body() dto: DetachStripePaymentMethodDto,
+  ) {
+    const subscription = await this.subscriptionService.detachPaymentMethod(
+      artistId,
+      dto,
+    );
+
+    return subscription;
+  }
+
+  @Get('/stripe/list-transactions')
+  async listTransactions(@GetUser('userId') artistId: string) {
+    const subscription =
+      await this.subscriptionService.listStripeCustomerTransactions(artistId);
+
+    return subscription;
+  }
+
+  @Get('/stripe/cancel-subscription')
+  async cancelSubscription(@GetUser('userId') artistId: string) {
+    const subscription =
+      await this.subscriptionService.cancelSubscription(artistId);
+
+    return subscription;
+  }
+
   @Post('/stripe/webhook')
   async handleWebhook(
     @Headers('stripe-signature') signature: string, // Get the Stripe signature from headers
     @Req() request: RawBodyRequest<Request>, // Use RawBodyRequest<Request> to access rawBody
   ) {
-    // this.logger.log(`Webhook request received. Passing to WebhookService.`);
+    this.logger.log(`Webhook request received. Passing to WebhookService.`);
     await this.subscriptionService.handleStripeWebhookEvent(
       signature,
       request.rawBody,

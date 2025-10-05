@@ -151,8 +151,8 @@ export class StripeService {
   async updateSubscription(params: {
     subscriptionId: string;
     cancelAtPeriodEnd: boolean;
-    prorationBehavior: Stripe.SubscriptionUpdateParams['proration_behavior'];
-    items: Stripe.SubscriptionUpdateParams['items'];
+    prorationBehavior?: Stripe.SubscriptionUpdateParams['proration_behavior'];
+    items?: Stripe.SubscriptionUpdateParams['items'];
   }) {
     try {
       const { subscriptionId, cancelAtPeriodEnd, prorationBehavior, items } =

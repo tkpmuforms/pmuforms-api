@@ -92,6 +92,9 @@ class User {
   @Prop({ unique: true })
   stripeSubscriptionId?: string;
 
+  @Prop({ type: Date })
+  stripeLastSyncAt?: Date;
+
   @Prop({ type: Profile })
   profile: Profile;
 }

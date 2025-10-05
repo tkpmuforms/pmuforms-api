@@ -25,6 +25,7 @@ import {
   ChangeSubscriptionPlanDto,
   DetachStripePaymentMethodDto,
 } from './dto';
+import { StripeWebhookService } from './stripe-webhook/stripe-webhook.service';
 
 @Injectable()
 export class SubscriptionService {
@@ -38,6 +39,7 @@ export class SubscriptionService {
     private utilsService: UtilsService,
     private eventEmitter: EventEmitter2,
     private stripeService: StripeService,
+    private stripeWebhookService: StripeWebhookService,
   ) {
     this.REVENUECAT_API_KEY = this.configService.get('REVENUECAT_API_KEY');
   }
@@ -199,7 +201,10 @@ export class SubscriptionService {
     return { success: true, message: 'Payment method added successfully' };
   }
 
-  async detachPaymentMethod({ paymentMethodId }: DetachStripePaymentMethodDto) {
+  async detachPaymentMethod(
+    artistId: string,
+    { paymentMethodId }: DetachStripePaymentMethodDto,
+  ) {
     return this.stripeService.detachPaymentMethod(paymentMethodId);
   }
 
@@ -331,12 +336,39 @@ export class SubscriptionService {
     const updatedSubscription = await this.stripeService.updateSubscription({
       subscriptionId: artist.stripeSubscriptionId,
       cancelAtPeriodEnd: false,
-      prorationBehavior: 'always_invoice', // handle billing adjustments
+      prorationBehavior: 'create_prorations', // handle billing adjustments
       items: [
         {
           price: dto.newPriceId,
         },
       ],
+    });
+
+    return updatedSubscription;
+  }
+
+  async cancelSubscription(artistId: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    if (!artist.stripeCustomerId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have a Stripe customer ID, create a subscription.`,
+      );
+    }
+
+    if (!artist.stripeSubscriptionId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have an active subscription to cancel, create a subscription.`,
+      );
+    }
+
+    const updatedSubscription = await this.stripeService.updateSubscription({
+      subscriptionId: artist.stripeSubscriptionId,
+      cancelAtPeriodEnd: true,
     });
 
     return updatedSubscription;
@@ -370,9 +402,9 @@ export class SubscriptionService {
       // customer.subscription.deleted;
       switch (event.type) {
         // === Subscription Lifecycle & Initial Payment ===
-        // case 'invoice.paid':
-        //   await this.handleInvoicePaid(stripeEventObject as Stripe.Invoice);
-        //   break;
+        case 'invoice.paid':
+          await this.stripeWebhookService.handleInvoicePaid(event.type, event);
+          break;
         // case 'invoice.payment_failed':
         //   await this.handleInvoicePaymentFailed(
         //     stripeEventObject as Stripe.Invoice,
