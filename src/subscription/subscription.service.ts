@@ -401,56 +401,20 @@ export class SubscriptionService {
       // customer.subscription.updated;
       // customer.subscription.deleted;
       switch (event.type) {
-        // === Subscription Lifecycle & Initial Payment ===
         case 'invoice.paid':
-          await this.stripeWebhookService.handleInvoicePaid(event.type, event);
+        case 'invoice.payment_failed':
+          await this.stripeWebhookService.handleInvoiceUpdates(
+            event.type,
+            event,
+          );
           break;
-        // case 'invoice.payment_failed':
-        //   await this.handleInvoicePaymentFailed(
-        //     stripeEventObject as Stripe.Invoice,
-        //   );
-        //   break;
-        // case 'customer.subscription.updated':
-        //   await this.handleCustomerSubscriptionUpdated(
-        //     stripeEventObject as Stripe.Subscription,
-        //   );
-        //   break;
-        // case 'customer.subscription.deleted': // Handles cancellations
-        //   await this.handleCustomerSubscriptionDeleted(
-        //     stripeEventObject as Stripe.Subscription,
-        //   );
-        //   break;
-        // // === Payment Method Management ===
-        // case 'setup_intent.succeeded':
-        //   await this.handleSetupIntentSucceeded(
-        //     stripeEventObject as Stripe.SetupIntent,
-        //   );
-        //   break;
-        // case 'customer.updated':
-        //   await this.handleCustomerUpdated(
-        //     stripeEventObject as Stripe.Customer,
-        //   );
-        //   break;
-        // case 'payment_intent.succeeded':
-        //   await this.handleSuccesfullCharge(
-        //     stripeEventObject as Stripe.PaymentIntent,
-        //   );
-        //   break;
-        // case 'payment_intent.payment_failed':
-        //   await this.handleFailedCharge(
-        //     stripeEventObject as Stripe.PaymentIntent,
-        //   );
-        //   break;
-        // === Other useful events you might add later ===
-        // case 'customer.subscription.trial_will_end':
-        //   // Handle trial ending soon notifications
-        //   break;
-        // case 'payment_method.attached':
-        //   // Handle payment method attachment if not using SetupIntents exclusively
-        //   break;
-        // case 'payment_method.detached':
-        //   // Handle payment method detachment
-        //   break;
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted':
+          await this.stripeWebhookService.handleSubscriptionUpdates(
+            event.type,
+            event,
+          );
+          break;
         default:
           this.logger.log(`Unhandled event type: ${event.type}`);
       }
@@ -459,11 +423,7 @@ export class SubscriptionService {
         `Error processing event ${event.id} (type: ${event.type}): ${error.message}`,
         error.stack,
       );
-      // To prevent Stripe from retrying indefinitely for an error within a specific handler,
-      // you might choose not to re-throw the error here, or re-throw a specific type
-      // that your global exception filter handles differently for webhooks.
-      // For now, we'll re-throw to indicate a processing failure.
-      // If this error is thrown, Stripe will retry the webhook.
+
       throw new BadRequestException(
         `Error processing webhook event ${event.type}: ${error.message}`,
       );
