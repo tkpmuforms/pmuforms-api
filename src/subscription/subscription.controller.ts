@@ -32,6 +32,21 @@ export class SubscriptionController {
   }
 
   @Public()
+  @Post('/stripe/webhook')
+  async handleWebhook(
+    @Headers('stripe-signature') signature: string, // Get the Stripe signature from headers
+    @Req() request: RawBodyRequest<Request>, // Use RawBodyRequest<Request> to access rawBody
+  ) {
+    this.logger.log(`Webhook request received. Passing to WebhookService.`);
+    await this.subscriptionService.handleStripeWebhookEvent(
+      signature,
+      request.rawBody,
+    );
+
+    return { received: true };
+  }
+
+  @Public()
   @Get('/refresh-subscription-status/:userId')
   async refreshSubscriptionStatus(@Param('userId') userId: string) {
     return await this.subscriptionService.refreshSubscriptionStatus(userId);
@@ -96,19 +111,5 @@ export class SubscriptionController {
       await this.subscriptionService.cancelSubscription(artistId);
 
     return subscription;
-  }
-
-  @Post('/stripe/webhook')
-  async handleWebhook(
-    @Headers('stripe-signature') signature: string, // Get the Stripe signature from headers
-    @Req() request: RawBodyRequest<Request>, // Use RawBodyRequest<Request> to access rawBody
-  ) {
-    this.logger.log(`Webhook request received. Passing to WebhookService.`);
-    await this.subscriptionService.handleStripeWebhookEvent(
-      signature,
-      request.rawBody,
-    );
-
-    return { received: true };
   }
 }
