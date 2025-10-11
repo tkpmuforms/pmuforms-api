@@ -11,7 +11,11 @@ import { UrlService } from 'src/url/url.service';
 import { AppConfigService } from 'src/config/config.service';
 import { UtilsService } from 'src/utils/utils.service';
 import { paginationMetaGenerator } from 'src/utils';
-import { SearchMyArtistsQueryParamsDto, UpdateProfileDto } from './dto';
+import {
+  SearchMyArtistsQueryParamsDto,
+  UpdateBusinessInfoDto,
+  UpdateProfileDto,
+} from './dto';
 import { DateTime } from 'luxon';
 import { FilledFormStatus } from 'src/enums';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -53,6 +57,33 @@ export class UsersService {
       artistId,
     );
     await artist.save();
+
+    return artist;
+  }
+
+  async updateBusinessInfo(artistId: string, dto: UpdateBusinessInfoDto) {
+    let artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    artist = await this.userModel.findByIdAndUpdate(
+      artist._id,
+      {
+        $set: {
+          businessName: dto.businessName,
+          businessUri: await this.utilsService.generateBusinessUri(
+            dto.businessName,
+            artist.userId,
+          ),
+          businessPhoneNumber: dto.businessPhoneNumber,
+          businessAddress: dto.businessAddress,
+          website: dto.website ?? null,
+        },
+      },
+      { new: true },
+    );
 
     return artist;
   }

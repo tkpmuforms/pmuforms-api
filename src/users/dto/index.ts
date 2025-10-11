@@ -79,3 +79,23 @@ export class UpdateProfileDto {
   @IsOptional()
   removeAvatar?: boolean;
 }
+
+export class UpdateBusinessInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  businessName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsPhoneNumber()
+  businessPhoneNumber: string;
+
+  @IsString()
+  @IsNotEmpty()
+  businessAddress: string;
+
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  website?: string;
+}

@@ -65,6 +65,12 @@ class User {
   @Prop()
   businessUri: string;
 
+  @Prop()
+  businessPhoneNumber?: string;
+
+  @Prop()
+  businessAddress?: string;
+
   @Prop({ type: [Service], default: [] })
   services: Service[];
 
