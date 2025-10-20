@@ -88,8 +88,8 @@ export class SubscriptionService {
         `/subscribers/${userId}`,
       );
       return res.data;
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      this.logger.log(error.message ?? '', { trace: error });
       throw new InternalServerErrorException('Unable to get subscription');
     }
   }
@@ -402,6 +402,7 @@ export class SubscriptionService {
       // customer.subscription.deleted;
       switch (event.type) {
         case 'invoice.paid':
+        case 'invoice.payment_succeeded':
         case 'invoice.payment_failed':
           await this.stripeWebhookService.handleInvoiceUpdates(
             event.type,
@@ -417,6 +418,8 @@ export class SubscriptionService {
           break;
         default:
           this.logger.log(`Unhandled event type: ${event.type}`);
+
+          break;
       }
     } catch (error) {
       this.logger.error(

@@ -90,7 +90,7 @@ class User {
   stripeCustomerId: string;
 
   @Prop({ default: false })
-  stripeSubsctiptionActive: boolean;
+  stripeSubscriptionActive: boolean;
 
   @Prop({ unique: true })
   activeStripePriceId?: string;

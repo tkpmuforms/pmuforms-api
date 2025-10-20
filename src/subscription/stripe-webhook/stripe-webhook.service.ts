@@ -18,7 +18,10 @@ export class StripeWebhookService {
   // invoice.payment_succeeded;
   // invoice.payment_failed;
   async handleInvoiceUpdates(
-    eventType: 'invoice.paid' | 'invoice.payment_failed',
+    eventType:
+      | 'invoice.paid'
+      | 'invoice.payment_failed'
+      | 'invoice.payment_succeeded',
     event: Stripe.Event,
   ) {
     try {
@@ -32,6 +35,16 @@ export class StripeWebhookService {
           `'invoice.paid' stripe event- invoice.customer missing.`,
         );
         return;
+      }
+
+      this.logger.log(
+        `[${eventType}] Processing invoice ${invoice.id} for customer ${stripeCustomerId}`,
+      );
+
+      if (eventType === 'invoice.payment_failed') {
+        this.logger.warn(
+          `[${eventType}] Payment failed for customer ${stripeCustomerId}`,
+        );
       }
 
       const artist = await this.userModel.findOne({ stripeCustomerId });
@@ -68,14 +81,18 @@ export class StripeWebhookService {
 
       await this.userModel.findByIdAndUpdate(artist._id, {
         stripeSubscriptionId: subscription.id,
-        stripeSubsctiptionActive: ['active', 'trialing'].includes(
+        stripeSubscriptionActive: ['active', 'trialing'].includes(
           subscription.status,
         ),
         activeStripePriceId: activePriceId ?? undefined,
         stripeLastSyncAt: new Date(),
       });
 
-      return { isFistTimeSubscriber: subscription.status === 'trialing' };
+      return {
+        isFistTimeSubscriber:
+          subscription.status === 'active' &&
+          subscription.billing_cycle_anchor === subscription.start_date,
+      };
     } catch (error) {
       this.logger.error(
         `${eventType}- ❌ Unable to process ${eventType} event`,
@@ -92,7 +109,7 @@ export class StripeWebhookService {
       | 'customer.subscription.deleted',
     event: Stripe.Event,
   ) {
-    this.logger.log(`handling ${eventType}`);
+    this.logger.log(`[${eventType}] Handling subscription webhook`);
 
     const subscription = event.data.object as Stripe.Subscription;
 
@@ -114,7 +131,7 @@ export class StripeWebhookService {
       return;
     }
     this.logger.log(
-      `Found artist ${artist._id} for Stripe Customer ID ${stripeCustomerId}.`,
+      `[${eventType}] Updating artist ${artist._id} for subscription ${subscription.id}`,
     );
 
     if (eventType === 'customer.subscription.deleted') {
@@ -124,7 +141,7 @@ export class StripeWebhookService {
           $set: {
             stripeSubscriptionId: null,
             activeStripePriceId: null,
-            stripeSubsctiptionActive: false,
+            stripeSubscriptionActive: false,
             stripeLastSyncAt: new Date(),
           },
         },
@@ -147,12 +164,12 @@ export class StripeWebhookService {
     // Handle subscription status and active state based on cancellation status
     if (subscription.status === 'canceled') {
       // Subscription is fully canceled
-      updateData.stripeSubsctiptionActive = false;
+      updateData.stripeSubscriptionActive = false;
       updateData.stripeSubscriptionId = null;
       updateData.activeStripePriceId = null;
     } else if (subscription.cancel_at_period_end) {
       // Subscription is scheduled for cancellation but still active
-      updateData.stripeSubsctiptionActive = ['active', 'trialing'].includes(
+      updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
         subscription.status,
       );
 
@@ -161,7 +178,7 @@ export class StripeWebhookService {
       );
     } else {
       // Normal subscription logic (not scheduled for cancellation and not canceled)
-      updateData.stripeSubsctiptionActive = ['active', 'trialing'].includes(
+      updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
         subscription.status,
       );
     }
