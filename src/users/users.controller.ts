@@ -18,6 +18,7 @@ import {
   SearchMyArtistsQueryParamsDto,
   TestPushNotificationDto,
   UpdateProfileDto,
+  UpdateBusinessInfoDto,
 } from './dto';
 
 @Controller('api/artists')
@@ -33,6 +34,19 @@ export class UsersController {
     const artistDoc = await this.usersService.updateBusinessName(
       artist.userId,
       dto.businessName,
+    );
+
+    return { artist: artistDoc };
+  }
+  @Roles(UserRole.ARTIST)
+  @Patch('/update-business-info')
+  async updateBusinessInfo(
+    @GetUser() artist: UserDocument,
+    @Body() dto: UpdateBusinessInfoDto,
+  ) {
+    const artistDoc = await this.usersService.updateBusinessInfo(
+      artist.userId,
+      dto,
     );
 
     return { artist: artistDoc };

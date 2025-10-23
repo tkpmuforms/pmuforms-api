@@ -22,6 +22,9 @@ export class Profile {
 
   @Prop()
   phoneNumber: string;
+
+  @Prop()
+  avatarUrl?: string;
 }
 
 @Schema({ timestamps: true })
@@ -62,19 +65,43 @@ class User {
   @Prop()
   businessUri: string;
 
-  @Prop({ type: [Service] })
+  @Prop()
+  businessPhoneNumber?: string;
+
+  @Prop()
+  businessAddress?: string;
+
+  @Prop({ type: [Service], default: [] })
   services: Service[];
 
   @Prop()
   fcmToken?: string;
 
   @Prop()
-  signature_url: string;
+  signature_url?: string;
 
   @Prop()
-  website: string;
+  website?: string;
 
-  @Prop({ select: false, type: Profile })
+  @Prop()
+  defaultStripePaymentMethod?: string;
+
+  @Prop({ unique: true })
+  stripeCustomerId: string;
+
+  @Prop({ default: false })
+  stripeSubscriptionActive: boolean;
+
+  @Prop({ unique: true })
+  activeStripePriceId?: string;
+
+  @Prop({ unique: true })
+  stripeSubscriptionId?: string;
+
+  @Prop({ type: Date })
+  stripeLastSyncAt?: Date;
+
+  @Prop({ type: Profile })
   profile: Profile;
 }
 

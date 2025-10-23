@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,9 +18,18 @@ import { DateTime } from 'luxon';
 import { UtilsService } from 'src/utils/utils.service';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { RevenueCatSubcriptionEvent } from './subscription.event';
+import { StripeService } from 'src/stripe/stripe.service';
+import {
+  CreateStripeSubscriptionDto,
+  AddStripePaymentMethodDto,
+  ChangeSubscriptionPlanDto,
+  DetachStripePaymentMethodDto,
+} from './dto';
+import { StripeWebhookService } from './stripe-webhook/stripe-webhook.service';
 
 @Injectable()
 export class SubscriptionService {
+  private readonly logger = new Logger(SubscriptionService.name);
   private REVENUECAT_API_URL = 'https://api.revenuecat.com/v1';
   private REVENUECAT_API_KEY: string;
 
@@ -27,6 +38,8 @@ export class SubscriptionService {
     private configService: AppConfigService,
     private utilsService: UtilsService,
     private eventEmitter: EventEmitter2,
+    private stripeService: StripeService,
+    private stripeWebhookService: StripeWebhookService,
   ) {
     this.REVENUECAT_API_KEY = this.configService.get('REVENUECAT_API_KEY');
   }
@@ -75,8 +88,8 @@ export class SubscriptionService {
         `/subscribers/${userId}`,
       );
       return res.data;
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      this.logger.log(error.message ?? '', { trace: error });
       throw new InternalServerErrorException('Unable to get subscription');
     }
   }
@@ -147,6 +160,276 @@ export class SubscriptionService {
         throw new NotFoundException(`User with id ${userId} not found`);
       }
       await this.firstTimeSubscriberEmail(user.email, user.businessName);
+    }
+  }
+
+  private async getOrCreateStripeCustomerId(userId: string) {
+    const artist = await this.userModel
+      .findOne({ userId })
+      .select('+stripeCustomerId');
+
+    if (!artist) {
+      throw new NotFoundException(`User with id ${userId} not found`);
+    }
+
+    if (!artist.stripeCustomerId) {
+      const stripeCustomer =
+        await this.stripeService.createStripeCustomer(artist);
+      artist.stripeCustomerId = stripeCustomer.id;
+      await artist.save();
+    }
+
+    return artist.stripeCustomerId;
+  }
+
+  async addStripePaymentMethod(
+    artistId: string,
+    { paymentMethodId }: AddStripePaymentMethodDto,
+  ) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    await this.stripeService.attachPaymentMethodToCustomer(
+      paymentMethodId,
+      stripeCustomerId,
+    );
+
+    // Update customer to set this PM as default
+    await this.stripeService.updateDefaultPaymentMethod(
+      stripeCustomerId,
+      paymentMethodId,
+    );
+    return { success: true, message: 'Payment method added successfully' };
+  }
+
+  async detachPaymentMethod(
+    artistId: string,
+    { paymentMethodId }: DetachStripePaymentMethodDto,
+  ) {
+    return this.stripeService.detachPaymentMethod(paymentMethodId);
+  }
+
+  async listStripePaymentMethods(artistId: string) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    return this.stripeService.listCustomerPaymentMethods({
+      stripeCustomerId,
+      type: 'card',
+    });
+  }
+
+  async listStripeCustomerTransactions(artistId: string) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    const invoices = await this.stripeService.listCustomerTransactions(
+      { stripeCustomerId },
+      { limit: 10 },
+    );
+
+    const invoicesResponse = invoices.data.map((inv) => ({
+      id: inv.id,
+      amount: inv.amount_paid / 100, // convert cents → dollars
+      currency: inv.currency,
+      status: inv.status, // e.g. paid, open, uncollectible
+      created: new Date(inv.created * 1000),
+      hosted_invoice_url: inv.hosted_invoice_url,
+    }));
+
+    return {
+      invoices: invoicesResponse,
+      hasMore: invoices.has_more,
+      lastInvoiceId: invoices.data.length
+        ? invoices.data[invoices.data.length - 1].id
+        : null,
+    };
+  }
+
+  async createStripeSubscription(
+    artistId: string,
+    dto: CreateStripeSubscriptionDto,
+  ) {
+    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+
+    const { priceId, paymentMethodId } = dto;
+    // const existingSubs = await this.stripe.subscriptions.list({
+    //   customer: stripeCustomerId,
+    //   status: 'all',
+    //   limit: 1,
+    // });
+    const existingSubs = await this.stripeService.listCustomerSubscriptions(
+      { stripeCustomerId, status: 'all' },
+      { limit: 1 },
+    );
+
+    if (paymentMethodId) {
+      await this.stripeService.attachPaymentMethodToCustomer(
+        paymentMethodId,
+        stripeCustomerId,
+      );
+
+      // Update customer to set this PM as default
+      await this.stripeService.updateDefaultPaymentMethod(
+        stripeCustomerId,
+        paymentMethodId,
+      );
+    }
+
+    const hasSubscribedBefore = existingSubs.data.length > 0;
+
+    if (hasSubscribedBefore) {
+      this.logger.log(
+        `User ${artistId} IS NOT a first time subscriber- no trial period added.`,
+      );
+    }
+
+    const subscriptionResponse = this.stripeService.createStripeSubscription({
+      stripeCustomerId,
+      items: [{ price: priceId }],
+      trialPeriodDays: !hasSubscribedBefore ? 7 : undefined,
+      expand: ['latest_invoice.payment_intent'],
+    });
+    return subscriptionResponse;
+  }
+
+  async changeSubscriptionPlan(
+    artistId: string,
+    dto: ChangeSubscriptionPlanDto,
+  ) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    if (!artist.stripeCustomerId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have a Stripe customer ID, create a subscription.`,
+      );
+    }
+
+    if (artist.activeStripePriceId === dto.newPriceId) {
+      this.logger.warn(
+        `Artist ${artistId} is already subscribed to price ${dto.newPriceId}. No change needed.`,
+      );
+      // Retrieve and return the current subscription as no change is made
+      return this.stripeService.getSubscription(artist.stripeSubscriptionId);
+    }
+
+    if (!artist.stripeSubscriptionId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have an active subscription to change, create a subscription.`,
+      );
+    }
+
+    if (dto.paymentMethodId) {
+      await this.stripeService.attachPaymentMethodToCustomer(
+        dto.paymentMethodId,
+        artist.stripeCustomerId,
+      );
+
+      // Update customer to set this PM as default
+      await this.stripeService.updateDefaultPaymentMethod(
+        artist.stripeCustomerId,
+        dto.paymentMethodId,
+      );
+    }
+
+    const updatedSubscription = await this.stripeService.updateSubscription({
+      subscriptionId: artist.stripeSubscriptionId,
+      cancelAtPeriodEnd: false,
+      prorationBehavior: 'create_prorations', // handle billing adjustments
+      items: [
+        {
+          price: dto.newPriceId,
+        },
+      ],
+    });
+
+    return updatedSubscription;
+  }
+
+  async cancelSubscription(artistId: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    if (!artist.stripeCustomerId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have a Stripe customer ID, create a subscription.`,
+      );
+    }
+
+    if (!artist.stripeSubscriptionId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have an active subscription to cancel, create a subscription.`,
+      );
+    }
+
+    const updatedSubscription = await this.stripeService.updateSubscription({
+      subscriptionId: artist.stripeSubscriptionId,
+      cancelAtPeriodEnd: true,
+    });
+
+    return updatedSubscription;
+  }
+
+  async handleStripeWebhookEvent(
+    signature: string | undefined,
+    rawBody: Buffer | undefined,
+  ) {
+    if (!signature) {
+      this.logger.warn('Webhook request missing Stripe signature header.');
+      throw new BadRequestException('Missing Stripe signature header.');
+    }
+
+    if (!rawBody) {
+      this.logger.error(
+        'Webhook request missing raw body. Check server configuration.',
+      );
+      throw new BadRequestException('Missing raw request body.');
+    }
+
+    const event = await this.stripeService.constructStripeWebhookEvent(
+      signature,
+      rawBody,
+    );
+
+    try {
+      // invoice.payment_succeeded;
+      // invoice.payment_failed;
+      // customer.subscription.updated;
+      // customer.subscription.deleted;
+      switch (event.type) {
+        case 'invoice.paid':
+        case 'invoice.payment_succeeded':
+        case 'invoice.payment_failed':
+          await this.stripeWebhookService.handleInvoiceUpdates(
+            event.type,
+            event,
+          );
+          break;
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted':
+          await this.stripeWebhookService.handleSubscriptionUpdates(
+            event.type,
+            event,
+          );
+          break;
+        default:
+          this.logger.log(`Unhandled event type: ${event.type}`);
+
+          break;
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing event ${event.id} (type: ${event.type}): ${error.message}`,
+        error.stack,
+      );
+
+      throw new BadRequestException(
+        `Error processing webhook event ${event.type}: ${error.message}`,
+      );
     }
   }
 }

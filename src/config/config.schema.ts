@@ -37,6 +37,9 @@ export const configSchema = z.object({
   REVENUECAT_APP_ID: z.string(),
   REVENUECAT_API_KEY: z.string(),
   REVENUECAT_WEBHOOK_SECRET: z.string(),
+
+  STRIPE_SECRET_KEY: z.string(),
+  STRIPE_WEBHOOK_SECRET: z.string(),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
