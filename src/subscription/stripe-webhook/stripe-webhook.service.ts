@@ -72,6 +72,8 @@ export class StripeWebhookService {
       const subscription =
         await this.stripeService.getSubscription(subscriptionId);
       const activePriceId = subscription.items?.data?.[0]?.price?.id;
+      const currentPeriodEnd =
+        subscription.items?.data?.[0]?.current_period_end;
 
       if (!activePriceId) {
         this.logger.warn(
@@ -85,6 +87,9 @@ export class StripeWebhookService {
           subscription.status,
         ),
         activeStripePriceId: activePriceId ?? undefined,
+        stripeNextBillingDate: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : null,
         stripeLastSyncAt: new Date(),
       });
 
@@ -141,6 +146,7 @@ export class StripeWebhookService {
           $set: {
             stripeSubscriptionId: null,
             activeStripePriceId: null,
+            stripeNextBillingDate: null,
             stripeSubscriptionActive: false,
             stripeLastSyncAt: new Date(),
           },
@@ -158,6 +164,9 @@ export class StripeWebhookService {
         subscription.items.data[0].price
           ? subscription.items.data[0].price.id
           : null,
+      stripeNextBillingDate: subscription.items
+        ? new Date(subscription.items.data[0].current_period_end * 1000)
+        : null,
       stripeLastSyncAt: new Date(),
     };
 
@@ -167,6 +176,7 @@ export class StripeWebhookService {
       updateData.stripeSubscriptionActive = false;
       updateData.stripeSubscriptionId = null;
       updateData.activeStripePriceId = null;
+      updateData.stripeNextBillingDate = null;
     } else if (subscription.cancel_at_period_end) {
       // Subscription is scheduled for cancellation but still active
       updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(

@@ -92,11 +92,14 @@ class User {
   @Prop({ default: false })
   stripeSubscriptionActive: boolean;
 
-  @Prop({ unique: true })
+  @Prop()
   activeStripePriceId?: string;
 
   @Prop({ unique: true })
   stripeSubscriptionId?: string;
+
+  @Prop()
+  stripeNextBillingDate?: Date;
 
   @Prop({ type: Date })
   stripeLastSyncAt?: Date;
