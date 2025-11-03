@@ -262,6 +262,12 @@ export class SubscriptionService {
       throw new NotFoundException(`artist with id ${artistId} not found`);
     }
 
+    if (artist.stripeSubscriptionId) {
+      throw new BadRequestException(
+        `artist with id ${artistId} already has an active subscription`,
+      );
+    }
+
     const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
 
     const { priceId, paymentMethodId } = dto;
@@ -282,6 +288,7 @@ export class SubscriptionService {
       );
       await this.userModel.findByIdAndUpdate(artist._id, {
         defaultStripePaymentMethod: paymentMethodId,
+        activeStripePriceId: priceId,
       });
     }
 
@@ -292,6 +299,11 @@ export class SubscriptionService {
         items: [{ price: priceId }],
         expand: ['latest_invoice.payment_intent'],
       });
+
+    await this.userModel.findByIdAndUpdate(artist._id, {
+      stripeSubscriptionId: subscriptionResponse.id,
+    });
+
     return subscriptionResponse;
   }
 
@@ -320,7 +332,7 @@ export class SubscriptionService {
       throw new NotFoundException(`artist with id ${artistId} not found`);
     }
 
-    if (!artist.stripeCustomerId) {
+    if (!artist.stripeCustomerId || !artist.stripeSubscriptionId) {
       throw new BadRequestException(
         `Artist ${artistId} does not have a Stripe customer ID, create a subscription.`,
       );
