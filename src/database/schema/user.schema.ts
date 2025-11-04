@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { SubscriptionPlan } from 'src/enums';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -82,6 +83,11 @@ class User {
 
   @Prop()
   website?: string;
+
+  @Prop({
+    enum: Object.values(SubscriptionPlan),
+  })
+  currentSubscriptionPlan: SubscriptionPlan;
 
   @Prop()
   defaultStripePaymentMethod?: string;

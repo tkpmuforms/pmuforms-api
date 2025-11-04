@@ -26,6 +26,7 @@ import {
   DetachStripePaymentMethodDto,
 } from './dto';
 import { StripeWebhookService } from './stripe-webhook/stripe-webhook.service';
+import { SubscriptionPlan } from 'src/enums';
 
 @Injectable()
 export class SubscriptionService {
@@ -59,8 +60,9 @@ export class SubscriptionService {
 
     const sandboxAllowed = this.configService.get('NODE_ENV') !== 'production';
 
+    let subscription: string | undefined;
     if (subscriber.entitlements?.pro) {
-      const subscription = subscriber.entitlements.pro.product_identifier;
+      subscription = subscriber.entitlements.pro.product_identifier;
       const isSandbox = subscriber.subscriptions[subscription]?.is_sandbox;
 
       if (isSandbox && !sandboxAllowed) {
@@ -72,11 +74,19 @@ export class SubscriptionService {
       }
     }
 
+    let currentSubscriptionPlan = SubscriptionPlan.NONE;
+    if (subscription === 'monthly_full_access') {
+      currentSubscriptionPlan = SubscriptionPlan.MONTHLY_FULL_ACCESS;
+    } else if (subscription === 'pmu.forms.yearly') {
+      currentSubscriptionPlan = SubscriptionPlan.MONTHLY_FULL_ACCESS;
+    }
+
     await this.userModel.updateOne(
       { userId },
       {
         appStorePurchaseActive: isActive,
         subscriptionLastVerifiedDate: new Date(),
+        currentSubscriptionPlan,
       },
     );
   }
