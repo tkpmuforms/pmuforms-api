@@ -274,7 +274,7 @@ export class SubscriptionService {
 
     if (artist.stripeSubscriptionId) {
       throw new BadRequestException(
-        `artist with id ${artistId} already has an active subscription`,
+        `artist with id ${artistId} already has a subscription- change subscription plan`,
       );
     }
 
@@ -298,7 +298,6 @@ export class SubscriptionService {
       );
       await this.userModel.findByIdAndUpdate(artist._id, {
         defaultStripePaymentMethod: paymentMethodId,
-        activeStripePriceId: priceId,
       });
     }
 
