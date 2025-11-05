@@ -15,6 +15,7 @@ import { GetUser, Public } from 'src/auth/decorator';
 import { RevenueCatWebhookGuard } from './revcat-webhook.guard';
 import {
   AddStripePaymentMethodDto,
+  ChangeSubscriptionPlanDto,
   CreateStripeSubscriptionDto,
   DetachStripePaymentMethodDto,
 } from './dto';
@@ -35,7 +36,7 @@ export class SubscriptionController {
   @Post('/stripe/webhook')
   async handleWebhook(
     @Headers('stripe-signature') signature: string, // Get the Stripe signature from headers
-    @Req() request: RawBodyRequest<Request>, // Use RawBodyRequest<Request> to access rawBody
+    @Req() request: RawBodyRequest<Request>, // Use RawBodyRequest<> to access rawBody
   ) {
     this.logger.log(`Webhook request received. Passing to WebhookService.`);
     await this.subscriptionService.handleStripeWebhookEvent(
@@ -59,6 +60,27 @@ export class SubscriptionController {
   ) {
     const subscription =
       await this.subscriptionService.createStripeSubscription(artistId, dto);
+
+    return subscription;
+  }
+
+  @Post('/stripe/change-subscription-plan')
+  async changeSubscripionPlan(
+    @GetUser('userId') artistId: string,
+    @Body() dto: ChangeSubscriptionPlanDto,
+  ) {
+    const subscription = await this.subscriptionService.changeSubscriptionPlan(
+      artistId,
+      dto,
+    );
+
+    return subscription;
+  }
+
+  @Get('/stripe/subscription-details')
+  async getSubscription(@GetUser('userId') artistId: string) {
+    const subscription =
+      await this.subscriptionService.getSubscription(artistId);
 
     return subscription;
   }

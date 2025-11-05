@@ -26,6 +26,7 @@ import {
   DetachStripePaymentMethodDto,
 } from './dto';
 import { StripeWebhookService } from './stripe-webhook/stripe-webhook.service';
+import { SubscriptionPlan } from 'src/enums';
 
 @Injectable()
 export class SubscriptionService {
@@ -59,8 +60,9 @@ export class SubscriptionService {
 
     const sandboxAllowed = this.configService.get('NODE_ENV') !== 'production';
 
+    let subscription: string | undefined;
     if (subscriber.entitlements?.pro) {
-      const subscription = subscriber.entitlements.pro.product_identifier;
+      subscription = subscriber.entitlements.pro.product_identifier;
       const isSandbox = subscriber.subscriptions[subscription]?.is_sandbox;
 
       if (isSandbox && !sandboxAllowed) {
@@ -72,11 +74,19 @@ export class SubscriptionService {
       }
     }
 
+    let currentSubscriptionPlan = SubscriptionPlan.NONE;
+    if (subscription === 'monthly_full_access') {
+      currentSubscriptionPlan = SubscriptionPlan.MONTHLY_FULL_ACCESS;
+    } else if (subscription === 'pmu.forms.yearly') {
+      currentSubscriptionPlan = SubscriptionPlan.MONTHLY_FULL_ACCESS;
+    }
+
     await this.userModel.updateOne(
       { userId },
       {
         appStorePurchaseActive: isActive,
         subscriptionLastVerifiedDate: new Date(),
+        currentSubscriptionPlan,
       },
     );
   }
@@ -186,6 +196,11 @@ export class SubscriptionService {
     artistId: string,
     { paymentMethodId }: AddStripePaymentMethodDto,
   ) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
     const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
 
     await this.stripeService.attachPaymentMethodToCustomer(
@@ -198,6 +213,10 @@ export class SubscriptionService {
       stripeCustomerId,
       paymentMethodId,
     );
+
+    await this.userModel.findByIdAndUpdate(artist._id, {
+      defaultStripePaymentMethod: paymentMethodId,
+    });
     return { success: true, message: 'Payment method added successfully' };
   }
 
@@ -247,18 +266,21 @@ export class SubscriptionService {
     artistId: string,
     dto: CreateStripeSubscriptionDto,
   ) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+
+    if (artist.stripeSubscriptionId) {
+      throw new BadRequestException(
+        `artist with id ${artistId} already has a subscription- change subscription plan`,
+      );
+    }
+
     const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
 
     const { priceId, paymentMethodId } = dto;
-    // const existingSubs = await this.stripe.subscriptions.list({
-    //   customer: stripeCustomerId,
-    //   status: 'all',
-    //   limit: 1,
-    // });
-    const existingSubs = await this.stripeService.listCustomerSubscriptions(
-      { stripeCustomerId, status: 'all' },
-      { limit: 1 },
-    );
 
     if (paymentMethodId) {
       await this.stripeService.attachPaymentMethodToCustomer(
@@ -271,23 +293,42 @@ export class SubscriptionService {
         stripeCustomerId,
         paymentMethodId,
       );
+      this.logger.log(
+        `Set default payment method for customer ${stripeCustomerId} to ${paymentMethodId}`,
+      );
+      await this.userModel.findByIdAndUpdate(artist._id, {
+        defaultStripePaymentMethod: paymentMethodId,
+      });
     }
 
-    const hasSubscribedBefore = existingSubs.data.length > 0;
+    const subscriptionResponse =
+      await this.stripeService.createStripeSubscription({
+        stripeCustomerId,
+        defaultPaymentMethod: paymentMethodId,
+        items: [{ price: priceId }],
+        expand: ['latest_invoice.payment_intent'],
+      });
 
-    if (hasSubscribedBefore) {
-      this.logger.log(
-        `User ${artistId} IS NOT a first time subscriber- no trial period added.`,
+    await this.userModel.findByIdAndUpdate(artist._id, {
+      stripeSubscriptionId: subscriptionResponse.id,
+    });
+
+    return subscriptionResponse;
+  }
+
+  async getSubscription(artistId: string) {
+    const artist = await this.userModel.findOne({ userId: artistId });
+    if (!artist) {
+      throw new NotFoundException(`artist with id ${artistId} not found`);
+    }
+    if (!artist.stripeSubscriptionId || !artist.stripeCustomerId) {
+      throw new BadRequestException(
+        `Artist ${artistId} does not have an active subscription, create a subscription.`,
       );
     }
-
-    const subscriptionResponse = this.stripeService.createStripeSubscription({
-      stripeCustomerId,
-      items: [{ price: priceId }],
-      trialPeriodDays: !hasSubscribedBefore ? 7 : undefined,
-      expand: ['latest_invoice.payment_intent'],
-    });
-    return subscriptionResponse;
+    return await this.stripeService.getSubscription(
+      artist.stripeSubscriptionId,
+    );
   }
 
   async changeSubscriptionPlan(
@@ -300,7 +341,7 @@ export class SubscriptionService {
       throw new NotFoundException(`artist with id ${artistId} not found`);
     }
 
-    if (!artist.stripeCustomerId) {
+    if (!artist.stripeCustomerId || !artist.stripeSubscriptionId) {
       throw new BadRequestException(
         `Artist ${artistId} does not have a Stripe customer ID, create a subscription.`,
       );
@@ -331,6 +372,10 @@ export class SubscriptionService {
         artist.stripeCustomerId,
         dto.paymentMethodId,
       );
+
+      await this.userModel.findByIdAndUpdate(artist._id, {
+        defaultStripePaymentMethod: dto.paymentMethodId,
+      });
     }
 
     const updatedSubscription = await this.stripeService.updateSubscription({

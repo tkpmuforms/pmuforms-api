@@ -13,3 +13,10 @@ export enum ReminderType {
   CHECK_IN = 'check-in',
   FOLLOW_UP = 'follow-up',
 }
+
+export enum SubscriptionPlan {
+  MONTHLY_FULL_ACCESS = 'monthly_full_access',
+  YEARLY_FULL_ACCESS = 'yearly_full_access',
+  WEEKLY_FULL_ACCESS = 'weekly_full_access',
+  NONE = 'none',
+}

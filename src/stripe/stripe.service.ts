@@ -106,6 +106,7 @@ export class StripeService {
 
   async createStripeSubscription(params: {
     stripeCustomerId: string;
+    defaultPaymentMethod?: string;
     items: Stripe.SubscriptionCreateParams['items'];
     expand: Stripe.SubscriptionCreateParams['expand'];
     trialPeriodDays?: number;
@@ -114,6 +115,7 @@ export class StripeService {
       const { stripeCustomerId, items, trialPeriodDays, expand } = params;
       return this.stripe.subscriptions.create({
         customer: stripeCustomerId,
+        default_payment_method: params.defaultPaymentMethod,
         items: items,
         trial_period_days: trialPeriodDays,
         expand,
@@ -131,7 +133,7 @@ export class StripeService {
   async getSubscription(
     subscriptionId: string,
     options?: { expand: string[] },
-  ) {
+  ): Promise<Stripe.Subscription> {
     try {
       const subscription = await this.stripe.subscriptions.retrieve(
         subscriptionId,

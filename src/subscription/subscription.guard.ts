@@ -61,6 +61,6 @@ export class SubscriptionGuard implements CanActivate {
   }
 
   getSubscriptionStatus(artist: UserDocument): boolean {
-    return artist.appStorePurchaseActive;
+    return artist.appStorePurchaseActive || artist.stripeSubscriptionActive;
   }
 }
