@@ -65,13 +65,15 @@ export class CustomersController {
   @Roles(UserRole.CUSTOMER, UserRole.ARTIST)
   @Post('/my-customers/create-customer')
   async createCustomer(
-    @GetUser() customerArtist: UserDocument | CustomerDocument,
+    @GetUser() user: UserDocument | CustomerDocument,
     @Body() dto: CreateCustomerDto,
+    @GetCurrentUserRole() userRole: UserRole,
   ) {
-    const customer = await this.customerService.createCustomer(
-      customerArtist.id,
-      dto,
-    );
+    // userId- pk in artist collection
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const userId: string = UserRole.ARTIST === userRole ? user.userId : user.id;
+    const customer = await this.customerService.createCustomer(userId, dto);
 
     return { customer };
   }

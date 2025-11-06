@@ -159,7 +159,7 @@ export class StripeService {
     try {
       const { subscriptionId, cancelAtPeriodEnd, prorationBehavior, items } =
         params;
-      return this.stripe.subscriptions.update(subscriptionId, {
+      return await this.stripe.subscriptions.update(subscriptionId, {
         cancel_at_period_end: cancelAtPeriodEnd,
         proration_behavior: prorationBehavior, // handle billing adjustments
         items: items,
