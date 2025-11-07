@@ -361,10 +361,13 @@ export class CustomersService {
         emergency_contact_name: personalDetails.emergencyContactName,
         emergency_contact_phone: personalDetails.emergencyContactPhone,
         avatar_url: personalDetails.avatarUrl,
-      }
-    }
+      },
+    };
 
-    const updatedCustomer = await this.customerModel.findOneAndUpdate({ id: customerId }, updateCustomerData);
+    const updatedCustomer = await this.customerModel.findOneAndUpdate(
+      { id: customerId },
+      updateCustomerData,
+    );
 
     return updatedCustomer;
   }
@@ -443,14 +446,6 @@ export class CustomersService {
   }
 
   async createCustomer(artistId: string, dto: CreateCustomerDto) {
-    // const user = await this.userModel.findOne({
-    //   _id: new Types.ObjectId(artistId),
-    // });
-
-    // if (!user) {
-    //   throw new NotFoundException(`user not found`);
-    // }
-
     let firebaseUser: UserRecord | undefined;
     if (dto.email) {
       firebaseUser = await this.firebaseService.getUserByEmail(

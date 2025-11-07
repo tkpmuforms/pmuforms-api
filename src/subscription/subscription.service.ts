@@ -378,6 +378,9 @@ export class SubscriptionService {
       });
     }
 
+    const stripeSubscription = await this.stripeService.getSubscription(
+      artist.stripeSubscriptionId,
+    );
     const updatedSubscription = await this.stripeService.updateSubscription({
       subscriptionId: artist.stripeSubscriptionId,
       cancelAtPeriodEnd: false,
@@ -385,6 +388,7 @@ export class SubscriptionService {
       items: [
         {
           price: dto.newPriceId,
+          id: stripeSubscription.items.data?.[0]?.id,
         },
       ],
     });

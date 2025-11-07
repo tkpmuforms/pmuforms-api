@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/database/schema';
@@ -34,7 +34,13 @@ export class StripeWebhookService {
         this.logger.error(
           `'invoice.paid' stripe event- invoice.customer missing.`,
         );
-        return;
+        throw new BadRequestException({
+          message: `'invoice.paid' stripe event- invoice.customer missing.`,
+          data: {
+            event,
+            invoice,
+          },
+        });
       }
 
       this.logger.log(
@@ -66,7 +72,13 @@ export class StripeWebhookService {
         this.logger.error(
           `${eventType}- ❌ subscription id not found in invoice`,
         );
-        return;
+        throw new BadRequestException({
+          message: `${eventType}- stripe event- invoice.customer missing.`,
+          data: {
+            event,
+            invoice,
+          },
+        });
       }
 
       const subscription =
@@ -133,7 +145,13 @@ export class StripeWebhookService {
       this.logger.warn(
         `Artist not found for Stripe Customer ID: ${stripeCustomerId} from customer.subscription.updated event ${subscription.id}.`,
       );
-      return;
+      throw new BadRequestException({
+        message: `artist not found`,
+        data: {
+          event,
+          subscription,
+        },
+      });
     }
     this.logger.log(
       `[${eventType}] Updating artist ${artist._id} for subscription ${subscription.id}`,
