@@ -120,8 +120,6 @@ export class CustomersService {
       );
     }
 
-    await relationship.deleteOne();
-
     // check if customer has appointments
     const numOfCustomerAppointments =
       await this.appointmentModel.countDocuments({ customerId });
@@ -132,6 +130,7 @@ export class CustomersService {
       );
     }
 
+    await relationship.deleteOne();
     await this.customerModel.deleteOne({ customerId });
     const uuidRegex =
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
