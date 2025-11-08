@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument } from 'src/database/schema';
@@ -34,13 +34,7 @@ export class StripeWebhookService {
         this.logger.error(
           `'invoice.paid' stripe event- invoice.customer missing.`,
         );
-        throw new BadRequestException({
-          message: `'invoice.paid' stripe event- invoice.customer missing.`,
-          data: {
-            event,
-            invoice,
-          },
-        });
+        return;
       }
 
       this.logger.log(
@@ -64,21 +58,16 @@ export class StripeWebhookService {
 
       // get subscription and price id from invoice
 
-      const subscriptionId = invoice.lines?.data?.find(
-        (line) => typeof line.subscription === 'string',
-      )?.subscription as string | undefined;
+      // const subscriptionId = invoice.lines.data.[0].line.parent.subscription_item_details.subscription
+      const subscriptionId =
+        invoice.lines.data?.[0]?.parent?.subscription_item_details
+          ?.subscription;
 
       if (!subscriptionId) {
         this.logger.error(
           `${eventType}- ❌ subscription id not found in invoice`,
         );
-        throw new BadRequestException({
-          message: `${eventType}- stripe event- invoice.customer missing.`,
-          data: {
-            event,
-            invoice,
-          },
-        });
+        return;
       }
 
       const subscription =
@@ -126,97 +115,98 @@ export class StripeWebhookService {
       | 'customer.subscription.deleted',
     event: Stripe.Event,
   ) {
-    this.logger.log(`[${eventType}] Handling subscription webhook`);
+    try {
+      this.logger.log(`[${eventType}] Handling subscription webhook`);
 
-    const subscription = event.data.object as Stripe.Subscription;
+      const subscription = event.data.object as Stripe.Subscription;
 
-    if (!subscription.customer || typeof subscription.customer !== 'string') {
-      this.logger.error(
-        `${eventType} event for subscription ${subscription.id} is missing a valid customer ID.`,
-      );
-      return;
-    }
-    const stripeCustomerId = subscription.customer;
-    const artist = await this.userModel.findOne({
-      stripeCustomerId: stripeCustomerId,
-    });
-
-    if (!artist) {
-      this.logger.warn(
-        `Artist not found for Stripe Customer ID: ${stripeCustomerId} from customer.subscription.updated event ${subscription.id}.`,
-      );
-      throw new BadRequestException({
-        message: `artist not found`,
-        data: {
-          event,
-          subscription,
-        },
+      if (!subscription.customer || typeof subscription.customer !== 'string') {
+        this.logger.error(
+          `${eventType} event for subscription ${subscription.id} is missing a valid customer ID.`,
+        );
+        return;
+      }
+      const stripeCustomerId = subscription.customer;
+      const artist = await this.userModel.findOne({
+        stripeCustomerId: stripeCustomerId,
       });
-    }
-    this.logger.log(
-      `[${eventType}] Updating artist ${artist._id} for subscription ${subscription.id}`,
-    );
 
-    if (eventType === 'customer.subscription.deleted') {
+      if (!artist) {
+        this.logger.warn(
+          `Artist not found for Stripe Customer ID: ${stripeCustomerId} from customer.subscription.updated event ${subscription.id}.`,
+        );
+      }
+      this.logger.log(
+        `[${eventType}] Updating artist ${artist._id} for subscription ${subscription.id}`,
+      );
+
+      if (eventType === 'customer.subscription.deleted') {
+        await this.userModel.updateOne(
+          { stripeCustomerId: stripeCustomerId },
+          {
+            $set: {
+              stripeSubscriptionId: null,
+              activeStripePriceId: null,
+              stripeNextBillingDate: null,
+              stripeSubscriptionActive: false,
+              stripeLastSyncAt: new Date(),
+            },
+          },
+        );
+        return;
+      }
+
+      const updateData: Partial<UserDocument> = {
+        stripeSubscriptionId: subscription.id,
+        activeStripePriceId:
+          subscription.items &&
+          subscription.items.data &&
+          subscription.items.data.length > 0 &&
+          subscription.items.data[0].price
+            ? subscription.items.data[0].price.id
+            : null,
+        stripeNextBillingDate: subscription.items
+          ? new Date(subscription.items.data?.[0]?.current_period_end * 1000)
+          : null,
+        stripeLastSyncAt: new Date(),
+      };
+
+      // Handle subscription status and active state based on cancellation status
+      if (subscription.status === 'canceled') {
+        // Subscription is fully canceled
+        updateData.stripeSubscriptionActive = false;
+        updateData.stripeSubscriptionId = null;
+        updateData.activeStripePriceId = null;
+        updateData.stripeNextBillingDate = null;
+      } else if (subscription.cancel_at_period_end) {
+        // Subscription is scheduled for cancellation but still active
+        updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
+          subscription.status,
+        );
+
+        this.logger.log(
+          `Subscription ${subscription.id} is scheduled for cancellation at period end (${new Date(subscription?.items?.data[0]?.current_period_end * 1000).toISOString()}) but remains active until then.`,
+        );
+      } else {
+        // Normal subscription logic (not scheduled for cancellation and not canceled)
+        updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
+          subscription.status,
+        );
+      }
+
       await this.userModel.updateOne(
         { stripeCustomerId: stripeCustomerId },
-        {
-          $set: {
-            stripeSubscriptionId: null,
-            activeStripePriceId: null,
-            stripeNextBillingDate: null,
-            stripeSubscriptionActive: false,
-            stripeLastSyncAt: new Date(),
-          },
-        },
+        { $set: updateData },
       );
-      return;
-    }
-
-    const updateData: Partial<UserDocument> = {
-      stripeSubscriptionId: subscription.id,
-      activeStripePriceId:
-        subscription.items &&
-        subscription.items.data &&
-        subscription.items.data.length > 0 &&
-        subscription.items.data[0].price
-          ? subscription.items.data[0].price.id
-          : null,
-      stripeNextBillingDate: subscription.items
-        ? new Date(subscription.items.data[0].current_period_end * 1000)
-        : null,
-      stripeLastSyncAt: new Date(),
-    };
-
-    // Handle subscription status and active state based on cancellation status
-    if (subscription.status === 'canceled') {
-      // Subscription is fully canceled
-      updateData.stripeSubscriptionActive = false;
-      updateData.stripeSubscriptionId = null;
-      updateData.activeStripePriceId = null;
-      updateData.stripeNextBillingDate = null;
-    } else if (subscription.cancel_at_period_end) {
-      // Subscription is scheduled for cancellation but still active
-      updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
-        subscription.status,
-      );
-
       this.logger.log(
-        `Subscription ${subscription.id} is scheduled for cancellation at period end (${new Date(subscription?.items?.data[0]?.current_period_end * 1000).toISOString()}) but remains active until then.`,
+        `Artist ${artist.userId} updated for customer.subscription.updated event.`,
       );
-    } else {
-      // Normal subscription logic (not scheduled for cancellation and not canceled)
-      updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
-        subscription.status,
+    } catch (error) {
+      this.logger.error(
+        `${eventType}- ❌ Unable to process ${eventType} event`,
+        error.stack,
       );
+      throw error;
     }
-
-    await this.userModel.updateOne(
-      { stripeCustomerId: stripeCustomerId },
-      { $set: updateData },
-    );
-    this.logger.log(
-      `Artist ${artist.userId} updated for customer.subscription.updated event.`,
-    );
   }
 }
