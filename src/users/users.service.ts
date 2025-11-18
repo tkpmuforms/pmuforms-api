@@ -300,18 +300,33 @@ export class UsersService {
       },
     });
 
-    const [totalClients, pendingSubmissionsAgg, todaysSchedule] =
-      await Promise.all([
-        totalClientsPromise,
-        filledFormsPromise,
-        todaysSchedulePromise,
-      ]);
+    const allAppointmentsPromise = this.appointmentModel.countDocuments({
+      artistId,
+    });
+
+    const [
+      totalClients,
+      pendingSubmissionsAgg,
+      todaysSchedule,
+      allAppointments,
+    ] = await Promise.all([
+      totalClientsPromise,
+      filledFormsPromise,
+      todaysSchedulePromise,
+      allAppointmentsPromise,
+    ]);
     const pendingSubmissions =
       pendingSubmissionsAgg?.[0]?.pendingFilledForms?.[0]?.count || 0;
     const formsShared =
       pendingSubmissionsAgg?.[0]?.allFilledForms?.[0]?.count || 0;
 
-    return { totalClients, formsShared, pendingSubmissions, todaysSchedule };
+    return {
+      totalClients,
+      formsShared,
+      pendingSubmissions,
+      todaysSchedule,
+      allAppointments,
+    };
   }
 
   async deleteArtist(artistId: string) {
