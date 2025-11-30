@@ -86,8 +86,6 @@ export class UpdateBusinessInfoDto {
   businessName: string;
 
   @IsString()
-  @IsNotEmpty()
-  @IsPhoneNumber()
   businessPhoneNumber: string;
 
   @IsString()
@@ -95,7 +93,5 @@ export class UpdateBusinessInfoDto {
   businessAddress: string;
 
   @IsString()
-  @IsOptional()
-  @IsUrl()
   website?: string;
 }
