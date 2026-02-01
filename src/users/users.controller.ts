@@ -68,11 +68,9 @@ export class UsersController {
 
   @Get('/search')
   async searchArtistByName(
-    @GetUser() customer: CustomerDocument,
     @Query() query: SearchMyArtistsQueryParamsDto,
   ) {
     const { metadata, artists } = await this.usersService.searchArtistByName(
-      customer.id,
       query,
     );
 

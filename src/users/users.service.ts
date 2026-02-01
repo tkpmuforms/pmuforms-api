@@ -164,72 +164,41 @@ export class UsersService {
   }
 
   async searchArtistByName(
-    customerId: string,
     params: SearchMyArtistsQueryParamsDto,
   ) {
     const { page = 1, limit = 10, name } = params;
+
     const skip = (page - 1) * limit;
 
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          customerId,
-        },
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'artistId',
-          foreignField: 'userId',
-          as: 'artist',
-        },
-      },
-      {
-        $unwind: {
-          path: '$artist',
-          includeArrayIndex: '0',
-          preserveNullAndEmptyArrays: false,
-        },
-      },
-      {
-        $facet: {
-          data: [
-            {
-              $skip: skip,
-            },
-            {
-              $limit: Number(limit),
-            },
-            {
-              $replaceRoot: {
-                newRoot: '$artist',
-              },
-            },
-          ],
-          aggregation: [
-            {
-              $count: 'count',
-            },
-          ],
-        },
-      },
-    ];
+    const filter: any = {};
 
     if (name) {
-      pipeline.splice(3, 0, {
-        $match: {
-          'artist.businessName': { $regex: name, $options: 'i' },
-        },
-      });
+      filter.businessName = {
+        $regex: name,
+        $options: 'i', // case-insensitive
+      };
+      filter.$or = [
+        { appStorePurchaseActive: true },
+        { canSendPromotionEmails: true },
+      ];
     }
 
-    const result = await this.relationshipModel.aggregate(pipeline);
+    // Get total count
+    const total = await this.userModel.countDocuments(filter);
 
-    const docCount = result[0].aggregation[0]?.count || 0;
-    const artists: UserDocument[] = result[0].data;
-    const metadata = paginationMetaGenerator(docCount, page, limit);
+    // Get paginated users
+    const users = await this.userModel
+      .find(filter)
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
 
-    return { metadata, artists };
+    const metadata = paginationMetaGenerator(total, page, limit);
+
+    return {
+      metadata,
+      artists: users,
+    };
   }
 
   async getArtistMetrics(artistId: string) {
