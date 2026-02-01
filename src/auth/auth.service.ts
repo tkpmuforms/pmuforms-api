@@ -168,9 +168,10 @@ export class AuthService {
     });
 
     if (!relationship) {
-      throw new UnauthorizedException(
-        `No relationship found between artist ${artistId} and customer ${customerId}`,
-      );
+      await this.relationshipModel.updateOne({
+        artistId,
+        customerId,
+      });
     }
 
     const artist = await this.userModel.findOne({ userId: artistId });
