@@ -319,6 +319,7 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
         ]
       : []),
 
+    // Normalize name for sorting
     {
       $addFields: {
         sortName: {
@@ -332,19 +333,24 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
       },
     },
 
+    // Sort BEFORE pagination
     { $sort: { sortName: 1 } },
 
     {
       $facet: {
-        data: [{ $skip: skip }, { $limit: Number(limit) }],
-        aggregation: [{ $count: 'count' }],
-      },
-    },
+        data: [
+          { $skip: skip },
+          { $limit: Number(limit) },
 
-    {
-      $project: {
-        data: 1,
-        aggregation: 1,
+          // Restore old response structure
+          {
+            $replaceRoot: {
+              newRoot: '$customer',
+            },
+          },
+        ],
+
+        aggregation: [{ $count: 'count' }],
       },
     },
   ];
@@ -359,7 +365,6 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
     customers: result[0]?.data ?? [],
   };
 }
-
 
   async updatePersonalDetails(
     customerId: string,
