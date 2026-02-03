@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, RootFilterQuery, PipelineStage } from 'mongoose';
+import { Model, PipelineStage } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   AppointmentDocument,
@@ -64,32 +64,54 @@ export class CustomersService {
   }
 
   async getArtistCustomers(
-    artistId: string,
-    options: GetMyCustomersQueryParamsDto,
-  ) {
-    const queryObject: RootFilterQuery<RelationshipDocument> = { artistId };
+  artistId: string,
+  options: GetMyCustomersQueryParamsDto,
+) {
+  const { page = 1, limit = 10 } = options;
+  const skip = (page - 1) * limit;
 
-    const { page = 1, limit = 10 } = options;
-    const skip = (page - 1) * limit;
+  const pipeline: PipelineStage[] = [
+    { $match: { artistId } },
 
-    const docCount = await this.relationshipModel.countDocuments(queryObject);
+    {
+      $lookup: {
+        from: 'customers',
+        localField: 'customerId',
+        foreignField: 'id',
+        as: 'customer',
+      },
+    },
 
-    const metadata = paginationMetaGenerator(docCount, page, limit);
+    { $unwind: '$customer' },
 
-    const customers = await this.relationshipModel
-      .find(queryObject)
-      .populate({
-        path: 'customer',
-        select: '-notes',
-        options: {
-          sort: { 'info.client_name': 1 },
+    // Case-insensitive sort
+    {
+      $addFields: {
+        sortName: {
+          $toLower: '$customer.info.client_name',
         },
-      })
-      .skip(skip)
-      .limit(limit);
+      },
+    },
 
-    return { metadata, customers };
-  }
+    { $sort: { sortName: 1 } },
+
+    { $skip: skip },
+    { $limit: Number(limit) },
+  ];
+
+  const [data, count] = await Promise.all([
+    this.relationshipModel.aggregate(pipeline),
+
+    this.relationshipModel.countDocuments({ artistId }),
+  ]);
+
+  const metadata = paginationMetaGenerator(count, page, limit);
+
+  return {
+    metadata,
+    customers: data,
+  };
+}
 
   async getCustomer(artistId: string, customerId: string) {
     const relationship = await this.relationshipModel
