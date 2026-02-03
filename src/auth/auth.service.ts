@@ -78,6 +78,10 @@ export class AuthService {
       });
     }
 
+    if (!email_verified) {
+      throw new UnauthorizedException('Email not verified');
+    }
+
     artist.emailVerified = email_verified;
     await artist.save();
 
@@ -122,6 +126,10 @@ export class AuthService {
       });
     }
 
+    if (!email_verified) {
+      throw new UnauthorizedException('Email not verified');
+    }
+
     if (artist) {
       //create relationship
       try {
@@ -131,15 +139,11 @@ export class AuthService {
           { upsert: true, new: true, setDefaultsOnInsert: true },
         );
 
-        console.log('relationship upserted:', rel);
+        console.log('relationship upserted for customer:', rel.customerId);
       } catch (err) {
         console.error('relationship upsert error:', err);
         throw err;
       }
-    }
-
-    if (!email_verified) {
-      throw new UnauthorizedException('Email not verified');
     }
 
     customer.emailVerified = email_verified;

@@ -78,17 +78,17 @@ export class CustomersService {
 
     const customers = await this.relationshipModel
       .find(queryObject)
-      .populate('customer', '-notes')
+      .populate({
+        path: 'customer',
+        select: '-notes',
+        options: {
+          sort: { 'info.client_name': 1 },
+        },
+      })
       .skip(skip)
       .limit(limit);
 
-    const sortedCustomers = customers.sort((a, b) =>
-      a.customer?.info?.client_name.localeCompare(
-        b.customer?.info?.client_name,
-      ),
-    );
-
-    return { metadata, customers: sortedCustomers };
+    return { metadata, customers };
   }
 
   async getCustomer(artistId: string, customerId: string) {
