@@ -275,83 +275,91 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
   }
 
   async searchMyCustomers(
-    artistId: string,
-    params: SearchMyCustomersQueryParamsDto,
-  ) {
-    const { page = 1, limit = 10, name } = params;
-    const skip = (page - 1) * limit;
+  artistId: string,
+  params: SearchMyCustomersQueryParamsDto,
+) {
+  const { page = 1, limit = 10, name } = params;
+  const skip = (page - 1) * limit;
 
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          artistId,
+  const pipeline: PipelineStage[] = [
+    { $match: { artistId } },
+
+    {
+      $lookup: {
+        from: 'customers',
+        localField: 'customerId',
+        foreignField: 'id',
+        as: 'customer',
+      },
+    },
+
+    { $unwind: '$customer' },
+
+    ...(name
+      ? [
+          {
+            $match: {
+              $or: [
+                {
+                  'customer.info.client_name': {
+                    $regex: name,
+                    $options: 'i',
+                  },
+                },
+                { 'customer.email': { $regex: name, $options: 'i' } },
+                {
+                  'customer.info.cell_phone': {
+                    $regex: name,
+                    $options: 'i',
+                  },
+                },
+              ],
+            },
+          },
+        ]
+      : []),
+
+    {
+      $addFields: {
+        sortName: {
+          $toLower: {
+            $ifNull: [
+              '$customer.info.client_name',
+              { $ifNull: ['$customer.name', ''] },
+            ],
+          },
         },
       },
-      {
-        $lookup: {
-          from: 'customers',
-          localField: 'customerId',
-          foreignField: 'id',
-          as: 'customer',
-        },
+    },
+
+    { $sort: { sortName: 1 } },
+
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: Number(limit) }],
+        aggregation: [{ $count: 'count' }],
       },
-      {
-        $unwind: {
-          path: '$customer',
-          includeArrayIndex: '0',
-          preserveNullAndEmptyArrays: false,
-        },
+    },
+
+    {
+      $project: {
+        data: 1,
+        aggregation: 1,
       },
-      {
-        $facet: {
-          data: [
-            {
-              $skip: skip,
-            },
-            {
-              $limit: Number(limit),
-            },
-            {
-              $replaceRoot: {
-                newRoot: '$customer',
-              },
-            },
-          ],
-          aggregation: [
-            {
-              $count: 'count',
-            },
-          ],
-        },
-      },
-    ];
+    },
+  ];
 
-    if (name) {
-      const matchNameStage = {
-        $match: {
-          $or: [
-            { 'customer.info.client_name': { $regex: name, $options: 'i' } },
-            { 'customer.email': { $regex: name, $options: 'i' } },
-            { 'customer.info.cell_phone': { $regex: name, $options: 'i' } },
-          ],
-        },
-      };
-      pipeline.splice(3, 0, matchNameStage);
-    }
+  const result = await this.relationshipModel.aggregate(pipeline);
 
-    const result = await this.relationshipModel.aggregate(pipeline);
-    const docCount = result[0].aggregation[0]?.count || 0;
-    const customers: any[] = result[0].data;
-    const metadata = paginationMetaGenerator(docCount, page, limit);
+  const docCount = result[0]?.aggregation?.[0]?.count ?? 0;
+  const metadata = paginationMetaGenerator(docCount, page, limit);
 
-    const sortedCustomers = customers.length
-      ? customers.sort((a, b) =>
-          a?.customer?.name.localeCompare(b?.customer?.name),
-        )
-      : [];
+  return {
+    metadata,
+    customers: result[0]?.data ?? [],
+  };
+}
 
-    return { metadata, customers: sortedCustomers };
-  }
 
   async updatePersonalDetails(
     customerId: string,
