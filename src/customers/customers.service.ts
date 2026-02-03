@@ -63,53 +63,47 @@ export class CustomersService {
     }
   }
 
-  async getArtistCustomers(
-  artistId: string,
-  options: GetMyCustomersQueryParamsDto,
-) {
+async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto) {
   const { page = 1, limit = 10 } = options;
   const skip = (page - 1) * limit;
 
   const pipeline: PipelineStage[] = [
     { $match: { artistId } },
-
     {
       $lookup: {
         from: 'customers',
         localField: 'customerId',
-        foreignField: 'id',
+        foreignField: 'id', // change to '_id' if that is your schema
         as: 'customer',
       },
     },
-
     { $unwind: '$customer' },
-
-    // Case-insensitive sort
     {
       $addFields: {
         sortName: {
-          $toLower: '$customer.info.client_name',
+          $toLower: {
+            $ifNull: ['$customer.info.client_name', { $ifNull: ['$customer.name', ''] }],
+          },
         },
       },
     },
-
     { $sort: { sortName: 1 } },
-
-    { $skip: skip },
-    { $limit: Number(limit) },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: Number(limit) }],
+        total: [{ $count: 'count' }],
+      },
+    },
   ];
 
-  const [data, count] = await Promise.all([
-    this.relationshipModel.aggregate(pipeline),
+  const result = await this.relationshipModel.aggregate(pipeline);
 
-    this.relationshipModel.countDocuments({ artistId }),
-  ]);
-
-  const metadata = paginationMetaGenerator(count, page, limit);
+  const docCount = result[0]?.total?.[0]?.count ?? 0;
+  const metadata = paginationMetaGenerator(docCount, page, limit);
 
   return {
     metadata,
-    customers: data,
+    customers: result[0]?.data ?? [],
   };
 }
 
