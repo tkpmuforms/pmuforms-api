@@ -78,10 +78,6 @@ export class AuthService {
       });
     }
 
-    if (!email_verified) {
-      throw new UnauthorizedException('Email not verified');
-    }
-
     artist.emailVerified = email_verified;
     await artist.save();
 
@@ -128,11 +124,18 @@ export class AuthService {
 
     if (artist) {
       //create relationship
-      await this.relationshipModel.findOneAndUpdate(
-        { artistId: artist.userId, customerId: customer.id },
-        { artistId: artist.userId, customerId: customer.id },
-        { upsert: true },
-      );
+      try {
+        const rel = await this.relationshipModel.findOneAndUpdate(
+          { artistId: artist.userId, customerId },
+          { artistId: artist.userId, customerId },
+          { upsert: true, new: true, setDefaultsOnInsert: true },
+        );
+
+        console.log('relationship upserted:', rel);
+      } catch (err) {
+        console.error('relationship upsert error:', err);
+        throw err;
+      }
     }
 
     if (!email_verified) {
