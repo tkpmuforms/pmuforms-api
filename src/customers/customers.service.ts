@@ -64,70 +64,32 @@ export class CustomersService {
   }
 
 async getArtistCustomers(
-  artistId: string,
-  options: GetMyCustomersQueryParamsDto,
-) {
-  const { page = 1, limit = 10 } = options;
-  const skip = (page - 1) * limit;
+    artistId: string,
+    options: GetMyCustomersQueryParamsDto,
+  ) {
+    const queryObject: RootFilterQuery<RelationshipDocument> = { artistId };
 
-  const pipeline: PipelineStage[] = [
-    { $match: { artistId } },
+    const { page = 1, limit = 10 } = options;
+    const skip = (page - 1) * limit;
 
-    {
-      $lookup: {
-        from: 'customers',
-        localField: 'customerId',
-        foreignField: 'id',
-        as: 'customer',
-      },
-    },
+    const docCount = await this.relationshipModel.countDocuments(queryObject);
 
-    { $unwind: '$customer' },
+    const metadata = paginationMetaGenerator(docCount, page, limit);
 
-    // mimic populate('customer', '-notes')
-    { $unset: 'customer.notes' },
+    const customers = await this.relationshipModel
+      .find(queryObject)
+      .populate('customer', '-notes')
+      .skip(skip)
+      .limit(limit);
 
-    {
-      $addFields: {
-        sortName: {
-          $toLower: {
-            $ifNull: [
-              '$customer.info.client_name',
-              { $ifNull: ['$customer.name', ''] },
-            ],
-          },
-        },
-      },
-    },
+    const sortedCustomers = customers.sort((a, b) =>
+      a.customer?.info?.client_name.localeCompare(
+        b.customer?.info?.client_name,
+      ),
+    );
 
-    { $sort: { sortName: 1 } },
-
-    {
-      $facet: {
-        data: [{ $skip: skip }, { $limit: Number(limit) }],
-        total: [{ $count: 'count' }],
-      },
-    },
-
-    // remove helper field so payload matches old response more closely
-    {
-      $project: {
-        data: { sortName: 0 },
-        total: 1,
-      },
-    },
-  ];
-
-  const result = await this.relationshipModel.aggregate(pipeline);
-
-  const docCount = result[0]?.total?.[0]?.count ?? 0;
-  const metadata = paginationMetaGenerator(docCount, page, limit);
-
-  return {
-    metadata,
-    customers: result[0]?.data ?? [],
-  };
-}
+    return { metadata, customers: sortedCustomers };
+  }
 
   async getCustomer(artistId: string, customerId: string) {
     const relationship = await this.relationshipModel
