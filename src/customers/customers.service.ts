@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Model, PipelineStage } from 'mongoose';
+import { Model, PipelineStage, RootFilterQuery } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import {
   AppointmentDocument,
@@ -64,58 +64,32 @@ export class CustomersService {
   }
 
 async getArtistCustomers(
-  artistId: string,
-  options: GetMyCustomersQueryParamsDto,
-) {
-  const { page = 1, limit = 10 } = options;
-  const skip = (page - 1) * limit;
+    artistId: string,
+    options: GetMyCustomersQueryParamsDto,
+  ) {
+    const queryObject: RootFilterQuery<RelationshipDocument> = { artistId };
 
-  const pipeline: PipelineStage[] = [
-    { $match: { artistId } },
-    {
-      $lookup: {
-        from: 'customers',
-        localField: 'customerId',
-        foreignField: 'id',
-        as: 'customer',
-      },
-    },
-    { $unwind: '$customer' },
-    {
-      $addFields: {
-        sortName: {
-          $toLower: {
-            $ifNull: [
-              '$customer.info.client_name',
-              { $ifNull: ['$customer.name', ''] },
-            ],
-          },
-        },
-      },
-    },
-    { $sort: { sortName: 1 } },
-    {
-      $facet: {
-        data: [
-          { $skip: skip },
-          { $limit: Number(limit) },
-          { $replaceRoot: { newRoot: '$customer' } },
-        ],
-        total: [{ $count: 'count' }],
-      },
-    },
-  ];
+    const { page = 1, limit = 10 } = options;
+    const skip = (page - 1) * limit;
 
-  const result = await this.relationshipModel.aggregate(pipeline);
+    const docCount = await this.relationshipModel.countDocuments(queryObject);
 
-  const docCount = result[0]?.total?.[0]?.count ?? 0;
-  const metadata = paginationMetaGenerator(docCount, page, limit);
+    const metadata = paginationMetaGenerator(docCount, page, limit);
 
-  return {
-    metadata,
-    customers: result[0]?.data ?? [],
-  };
-}
+    const customers = await this.relationshipModel
+      .find(queryObject)
+      .populate('customer', '-notes')
+      .skip(skip)
+      .limit(limit);
+
+    const sortedCustomers = customers.sort((a, b) =>
+      a.customer?.info?.client_name.localeCompare(
+        b.customer?.info?.client_name,
+      ),
+    );
+
+    return { metadata, customers: sortedCustomers };
+  }
 
   async getCustomer(artistId: string, customerId: string) {
     const relationship = await this.relationshipModel
