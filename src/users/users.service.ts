@@ -204,9 +204,26 @@ export class UsersService {
   async getArtistMetrics(artistId: string) {
     const twelveAm = DateTime.now().startOf('day').toJSDate();
     const eleven59pm = DateTime.now().endOf('day').toJSDate();
-    const totalClientsPromise = this.relationshipModel.countDocuments({
-      artistId,
-    });
+    const totalClientsPromise = this.relationshipModel
+    .aggregate([
+      { $match: { artistId } },
+      {
+        $lookup: {
+          from: 'customers',
+          localField: 'customerId',
+          foreignField: 'id',
+          as: 'customer',
+        },
+      },
+      { $match: { customer: { $ne: [] } } }, // only count relationships with an existing customer
+      {
+        $group: {
+          _id: '$customerId', // de-dupe in case of duplicate relationships
+        },
+      },
+      { $count: 'count' },
+    ])
+    .then((res) => res[0]?.count ?? 0);
 
     const filledFormsPipeline: PipelineStage[] = [
       {
