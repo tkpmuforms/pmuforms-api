@@ -63,7 +63,10 @@ export class CustomersService {
     }
   }
 
-async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto) {
+async getArtistCustomers(
+  artistId: string,
+  options: GetMyCustomersQueryParamsDto,
+) {
   const { page = 1, limit = 10 } = options;
   const skip = (page - 1) * limit;
 
@@ -73,7 +76,7 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
       $lookup: {
         from: 'customers',
         localField: 'customerId',
-        foreignField: 'id', // change to '_id' if that is your schema
+        foreignField: 'id',
         as: 'customer',
       },
     },
@@ -82,7 +85,10 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
       $addFields: {
         sortName: {
           $toLower: {
-            $ifNull: ['$customer.info.client_name', { $ifNull: ['$customer.name', ''] }],
+            $ifNull: [
+              '$customer.info.client_name',
+              { $ifNull: ['$customer.name', ''] },
+            ],
           },
         },
       },
@@ -90,7 +96,11 @@ async getArtistCustomers(artistId: string, options: GetMyCustomersQueryParamsDto
     { $sort: { sortName: 1 } },
     {
       $facet: {
-        data: [{ $skip: skip }, { $limit: Number(limit) }],
+        data: [
+          { $skip: skip },
+          { $limit: Number(limit) },
+          { $replaceRoot: { newRoot: '$customer' } },
+        ],
         total: [{ $count: 'count' }],
       },
     },
