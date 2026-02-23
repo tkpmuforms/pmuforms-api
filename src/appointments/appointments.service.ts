@@ -255,7 +255,7 @@ export class AppointmentsService {
               <p style="text-align:left;margin:0 0 26px 0;">
                 <!-- Button -->
                 <a href="${appointmentUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600;background:linear-gradient(180deg,#8e2d8e,#a654cd);color:#ffffff;box-shadow:0 6px 14px rgba(92,46,198,0.18);">
-                  👉 Log in to Complete Forms
+                  👉 Login to Complete Forms
                 </a>
               </p>
 
