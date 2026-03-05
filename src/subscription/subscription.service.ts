@@ -237,7 +237,19 @@ export class SubscriptionService {
   }
 
   async listStripeCustomerTransactions(artistId: string) {
-    const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
+    const artist = await this.userModel
+      .findOne({ userId: artistId })
+      .select('+stripeCustomerId');
+
+    const stripeCustomerId = artist.stripeCustomerId;
+
+    if (!stripeCustomerId) {
+      return {
+        invoices: [],
+        hasMore: false,
+        lastInvoiceId: null,
+      };
+    }
 
     const invoices = await this.stripeService.listCustomerTransactions(
       { stripeCustomerId },
