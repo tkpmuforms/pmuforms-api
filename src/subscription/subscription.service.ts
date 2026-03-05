@@ -182,14 +182,31 @@ export class SubscriptionService {
       throw new NotFoundException(`User with id ${userId} not found`);
     }
 
-    if (!artist.stripeCustomerId) {
-      const stripeCustomer =
-        await this.stripeService.createStripeCustomer(artist);
-      artist.stripeCustomerId = stripeCustomer.id;
-      await artist.save();
+    if (artist.stripeCustomerId) {
+      return artist.stripeCustomerId;
     }
 
-    return artist.stripeCustomerId;
+    const stripeCustomer =
+      await this.stripeService.createStripeCustomer(artist);
+
+    const updateResult = await this.userModel.updateOne(
+      { _id: artist._id, stripeCustomerId: { $in: [null, undefined, ''] } },
+      { $set: { stripeCustomerId: stripeCustomer.id } },
+    );
+
+    if (updateResult.modifiedCount === 1) {
+      return stripeCustomer.id;
+    }
+
+    const refreshedArtist = await this.userModel
+      .findById(artist._id)
+      .select('+stripeCustomerId');
+
+    if (refreshedArtist?.stripeCustomerId) {
+      return refreshedArtist.stripeCustomerId;
+    }
+
+    return stripeCustomer.id;
   }
 
   async addStripePaymentMethod(
