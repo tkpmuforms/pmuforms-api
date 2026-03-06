@@ -73,10 +73,18 @@ export class StripeService {
 
   async createStripeCustomer(artist: UserDocument) {
     try {
-      const stripeCustomer = await this.stripe.customers.create({
-        email: artist.email,
-        name: artist.businessName,
-      });
+      const stripeCustomer = await this.stripe.customers.create(
+        {
+          email: artist.email,
+          name: artist.businessName,
+          metadata: {
+            userId: artist.userId,
+          },
+        },
+        {
+          idempotencyKey: `create_stripe_customer_${artist.userId}`,
+        },
+      );
       return stripeCustomer;
     } catch (error: unknown) {
       this.logger.error(

@@ -206,7 +206,8 @@ export class AppointmentsService {
 
     const DOMAIN = this.config.get('CLIENT_BASE_URL');
 
-    const appointmentUrl = `${DOMAIN}/customer/forms/appointment/${appointmentDoc.id}`;
+    // https://business.pmuforms.com/#/taolak-llc/customer/appointments/7d1c9b49-e3a6-4c91-93bf-5f5d8650ecee
+    const appointmentUrl = `${DOMAIN}/#/${appointmentDoc.artist.businessUri}/customer/appointments/${appointmentDoc.id}`;
 
     const customerName = `${firstName || ''}`;
 
