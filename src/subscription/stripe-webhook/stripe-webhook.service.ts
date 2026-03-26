@@ -137,10 +137,40 @@ export class StripeWebhookService {
         );
       }
       this.logger.log(
-        `[${eventType}] Updating artist ${artist._id} for subscription ${subscription.id}`,
+        `[${eventType}] Updating artist ${artist?._id} for subscription ${subscription.id}`,
       );
 
+      const currentPeriodEnd =
+        (subscription as any)?.current_period_end ??
+        subscription.items?.data?.[0]?.current_period_end;
+
+      const hasRemainingTimeInPeriod =
+        typeof currentPeriodEnd === 'number' &&
+        currentPeriodEnd * 1000 > Date.now();
+
       if (eventType === 'customer.subscription.deleted') {
+        if (hasRemainingTimeInPeriod) {
+          await this.userModel.updateOne(
+            { stripeCustomerId: stripeCustomerId },
+            {
+              $set: {
+                stripeSubscriptionId: subscription.id,
+                activeStripePriceId:
+                  subscription.items &&
+                  subscription.items.data &&
+                  subscription.items.data.length > 0 &&
+                  subscription.items.data[0].price
+                    ? subscription.items.data[0].price.id
+                    : null,
+                stripeNextBillingDate: new Date(currentPeriodEnd * 1000),
+                stripeSubscriptionActive: true,
+                stripeLastSyncAt: new Date(),
+              },
+            },
+          );
+          return;
+        }
+
         await this.userModel.updateOne(
           { stripeCustomerId: stripeCustomerId },
           {
@@ -165,27 +195,31 @@ export class StripeWebhookService {
           subscription.items.data[0].price
             ? subscription.items.data[0].price.id
             : null,
-        stripeNextBillingDate: subscription.items
-          ? new Date(subscription.items.data?.[0]?.current_period_end * 1000)
-          : null,
         stripeLastSyncAt: new Date(),
       };
 
+      updateData.stripeNextBillingDate =
+        typeof currentPeriodEnd === 'number'
+          ? new Date(currentPeriodEnd * 1000)
+          : null;
+
       // Handle subscription status and active state based on cancellation status
       if (subscription.status === 'canceled') {
-        // Subscription is fully canceled
-        updateData.stripeSubscriptionActive = false;
-        updateData.stripeSubscriptionId = null;
-        updateData.activeStripePriceId = null;
-        updateData.stripeNextBillingDate = null;
+        // Stripe can mark a subscription as canceled while access remains valid until current_period_end
+        if (hasRemainingTimeInPeriod) {
+          updateData.stripeSubscriptionActive = true;
+        } else {
+          updateData.stripeSubscriptionActive = false;
+          updateData.stripeSubscriptionId = null;
+          updateData.activeStripePriceId = null;
+          updateData.stripeNextBillingDate = null;
+        }
       } else if (subscription.cancel_at_period_end) {
         // Subscription is scheduled for cancellation but still active
-        updateData.stripeSubscriptionActive = ['active', 'trialing'].includes(
-          subscription.status,
-        );
+        updateData.stripeSubscriptionActive = hasRemainingTimeInPeriod;
 
         this.logger.log(
-          `Subscription ${subscription.id} is scheduled for cancellation at period end (${new Date(subscription?.items?.data[0]?.current_period_end * 1000).toISOString()}) but remains active until then.`,
+          `Subscription ${subscription.id} is scheduled for cancellation at period end (${currentPeriodEnd ? new Date(currentPeriodEnd * 1000).toISOString() : 'unknown'}) but remains active until then.`,
         );
       } else {
         // Normal subscription logic (not scheduled for cancellation and not canceled)
@@ -199,7 +233,7 @@ export class StripeWebhookService {
         { $set: updateData },
       );
       this.logger.log(
-        `Artist ${artist.userId} updated for customer.subscription.updated event.`,
+        `Artist ${artist?.userId} updated for customer.subscription.updated event.`,
       );
     } catch (error) {
       this.logger.error(
