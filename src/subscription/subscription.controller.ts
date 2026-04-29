@@ -18,6 +18,7 @@ import {
   ChangeSubscriptionPlanDto,
   CreateStripeSubscriptionDto,
   DetachStripePaymentMethodDto,
+  ValidateStripeCouponCodeDto,
 } from './dto';
 
 @Controller('api/subscriptions')
@@ -133,5 +134,13 @@ export class SubscriptionController {
       await this.subscriptionService.cancelSubscription(artistId);
 
     return subscription;
+  }
+
+  @Post('/stripe/validate-coupon')
+  async validateCoupon(@Body() body: ValidateStripeCouponCodeDto) {
+    const data = await this.subscriptionService.validateStripeCoupon(
+      body.couponCode,
+    );
+    return data;
   }
 }
