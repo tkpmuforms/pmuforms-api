@@ -8,6 +8,10 @@ export class CreateStripeSubscriptionDto {
   @IsString()
   @IsOptional()
   paymentMethodId?: string;
+
+  @IsString()
+  @IsOptional()
+  couponCode?: string;
 }
 
 export class AddStripePaymentMethodDto {
@@ -24,10 +28,20 @@ export class ChangeSubscriptionPlanDto {
   @IsString()
   @IsOptional()
   paymentMethodId: string;
+
+  @IsString()
+  @IsOptional()
+  couponCode?: string;
 }
 
 export class DetachStripePaymentMethodDto {
   @IsString()
   @IsNotEmpty()
   paymentMethodId: string;
+}
+
+export class ValidateStripeCouponCodeDto {
+  @IsString()
+  @IsNotEmpty()
+  couponCode: string;
 }

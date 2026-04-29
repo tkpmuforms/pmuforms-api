@@ -118,6 +118,7 @@ export class StripeService {
     items: Stripe.SubscriptionCreateParams['items'];
     expand: Stripe.SubscriptionCreateParams['expand'];
     trialPeriodDays?: number;
+    couponId?: string;
   }) {
     try {
       const { stripeCustomerId, items, trialPeriodDays, expand } = params;
@@ -126,6 +127,7 @@ export class StripeService {
         default_payment_method: params.defaultPaymentMethod,
         items: items,
         trial_period_days: trialPeriodDays,
+        discounts: params.couponId ? [{ coupon: params.couponId }] : undefined,
         expand,
       });
     } catch (error: unknown) {
@@ -163,6 +165,7 @@ export class StripeService {
     cancelAtPeriodEnd: boolean;
     prorationBehavior?: Stripe.SubscriptionUpdateParams['proration_behavior'];
     items?: Stripe.SubscriptionUpdateParams['items'];
+    couponId?: string;
   }) {
     try {
       const { subscriptionId, cancelAtPeriodEnd, prorationBehavior, items } =
@@ -171,6 +174,7 @@ export class StripeService {
         cancel_at_period_end: cancelAtPeriodEnd,
         proration_behavior: prorationBehavior, // handle billing adjustments
         items: items,
+        discounts: params.couponId ? [{ coupon: params.couponId }] : undefined,
       });
     } catch (error: unknown) {
       const message = (error as any)?.message ?? 'Error updating subscription';
@@ -273,6 +277,81 @@ export class StripeService {
       throw new BadRequestException(
         `Webhook error (signature verification failed): ${err.message}`,
       );
+    }
+  }
+
+  async getStripeCouponByCode(
+    couponCode: string,
+  ): Promise<Stripe.Coupon | null> {
+    try {
+      const promoList = await this.stripe.promotionCodes.list({
+        code: couponCode,
+        active: true,
+        limit: 1,
+      });
+      const promo = promoList.data[0];
+
+      if (!promo) {
+        return null;
+      }
+      const couponId =
+        typeof promo.promotion.coupon === 'string'
+          ? promo.promotion.coupon
+          : promo.promotion.coupon.id;
+
+      const coupon = await this.stripe.coupons.retrieve(couponId);
+      return coupon;
+    } catch (error: unknown) {
+      if ((error as any)?.type === 'StripeInvalidRequestError') {
+        return null;
+      }
+      const message =
+        (error as any)?.message ?? 'Error validating Stripe coupon code';
+      this.logger.error(`Error validating Stripe coupon code: ${error}`);
+      throw new InternalServerErrorException(message, {
+        cause: error,
+        description: 'Error validating Stripe coupon code',
+      });
+    }
+  }
+
+  async validateStripeCoupon(
+    couponCode: string,
+  ): Promise<{ isValid: boolean; message: string }> {
+    try {
+      const promoList = await this.stripe.promotionCodes.list({
+        code: couponCode,
+        active: true,
+        limit: 1,
+      });
+      const promo = promoList.data[0];
+
+      if (!promo) {
+        this.logger.warn(`Coupon code not found: ${couponCode}`);
+        return { isValid: false, message: 'Coupon code not found' };
+      }
+      const couponId =
+        typeof promo.promotion.coupon === 'string'
+          ? promo.promotion.coupon
+          : promo.promotion.coupon.id;
+
+      const coupon = await this.stripe.coupons.retrieve(couponId);
+
+      // console.log(`Retrieved coupon: ${JSON.stringify(coupon)}`);
+      return { isValid: coupon?.valid ?? false, message: 'Coupon is valid' };
+    } catch (error: unknown) {
+      if ((error as any)?.type === 'StripeInvalidRequestError') {
+        // If the error is due to an invalid coupon code, we consider it as invalid
+
+        return { isValid: false, message: (error as any).message };
+      }
+      const message =
+        (error as any)?.message ?? 'Error validating Stripe coupon code';
+      this.logger.error(`Error validating Stripe coupon code: ${error}`);
+      throw new InternalServerErrorException(message, {
+        cause: error,
+        description: 'Error validating Stripe coupon code',
+      });
     }
   }
 }

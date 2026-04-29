@@ -27,6 +27,7 @@ import {
 } from './dto';
 import { StripeWebhookService } from './stripe-webhook/stripe-webhook.service';
 import { SubscriptionPlan } from 'src/enums';
+import Stripe from 'stripe';
 
 @Injectable()
 export class SubscriptionService {
@@ -309,7 +310,22 @@ export class SubscriptionService {
 
     const stripeCustomerId = await this.getOrCreateStripeCustomerId(artistId);
 
-    const { priceId, paymentMethodId } = dto;
+    const { priceId, paymentMethodId, couponCode } = dto;
+
+    let coupon: Stripe.Coupon | null = null;
+    if (couponCode) {
+      coupon = await this.stripeService.getStripeCouponByCode(couponCode);
+
+      if (!coupon) {
+        throw new NotFoundException(`Coupon code ${couponCode} not found`);
+      }
+
+      if (!coupon.valid) {
+        throw new BadRequestException(
+          `Coupon code ${couponCode} is no longer valid`,
+        );
+      }
+    }
 
     if (paymentMethodId) {
       await this.stripeService.attachPaymentMethodToCustomer(
@@ -335,6 +351,7 @@ export class SubscriptionService {
         stripeCustomerId,
         defaultPaymentMethod: paymentMethodId,
         items: [{ price: priceId }],
+        couponId: coupon?.id,
         expand: ['latest_invoice.payment_intent'],
       });
 
@@ -407,6 +424,21 @@ export class SubscriptionService {
       });
     }
 
+    let coupon: Stripe.Coupon | null = null;
+    if (dto.couponCode) {
+      coupon = await this.stripeService.getStripeCouponByCode(dto.couponCode);
+
+      if (!coupon) {
+        throw new NotFoundException(`Coupon code ${dto.couponCode} not found`);
+      }
+
+      if (!coupon.valid) {
+        throw new BadRequestException(
+          `Coupon code ${dto.couponCode} is no longer valid`,
+        );
+      }
+    }
+
     const stripeSubscription = await this.stripeService.getSubscription(
       artist.stripeSubscriptionId,
     );
@@ -420,6 +452,9 @@ export class SubscriptionService {
           id: stripeSubscription.items.data?.[0]?.id,
         },
       ],
+      couponId: dto.couponCode
+        ? (await this.stripeService.getStripeCouponByCode(dto.couponCode))?.id
+        : undefined,
     });
 
     return updatedSubscription;
@@ -450,6 +485,12 @@ export class SubscriptionService {
     });
 
     return updatedSubscription;
+  }
+
+  async validateStripeCoupon(couponCode: string) {
+    const data = await this.stripeService.validateStripeCoupon(couponCode);
+
+    return data;
   }
 
   async handleStripeWebhookEvent(

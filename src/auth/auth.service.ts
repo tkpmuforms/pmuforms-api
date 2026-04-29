@@ -17,6 +17,8 @@ import {
 import { UserRole } from 'src/enums';
 import { UtilsService } from 'src/utils/utils.service';
 import { ChangePasswordDto } from './dto';
+import path from 'node:path';
+import { readFileSync } from 'node:fs';
 
 @Injectable()
 export class AuthService {
@@ -87,7 +89,10 @@ export class AuthService {
 
     if (userCreated) {
       // send welcome email
-      this.sendWelcomeEmail(artist.email, artist.businessName);
+      this.sendWelcomeEmailV2(artist.email).catch((err) => {
+        console.error('Error sending welcome email:', err.message);
+        console.error(err);
+      });
     }
 
     const access_token = await this.signToken(artist.userId, UserRole.ARTIST);
@@ -216,14 +221,6 @@ export class AuthService {
     });
   }
 
-  async me(userId: string) {
-    const user = await this.userModel.findById(userId).select('+profile');
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    return user;
-  }
-
   async sendEmailVerification(uid: string) {
     const firebaseUser = await this.firebaseService.getUserById(uid);
 
@@ -268,6 +265,22 @@ export class AuthService {
       to: email,
       subject,
       message,
+    });
+  }
+
+  private async sendWelcomeEmailV2(email: string) {
+    const subject = 'Welcome to PMU Forms – Let’s Get You Set Up!';
+    const htmlPath = path.join(
+      __dirname,
+      '../utils/email-templates/artist-welcome-email.html',
+    );
+
+    const htmlContent = readFileSync(htmlPath, 'utf-8');
+
+    await this.util.sendEmail({
+      to: email,
+      subject,
+      message: htmlContent,
     });
   }
 
