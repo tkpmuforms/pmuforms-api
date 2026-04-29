@@ -89,7 +89,7 @@ export class AuthService {
 
     if (userCreated) {
       // send welcome email
-      await this.sendWelcomeEmailV2(artist.email).catch((err) => {
+      this.sendWelcomeEmailV2(artist.email).catch((err) => {
         console.error('Error sending welcome email:', err.message);
         console.error(err);
       });

@@ -9,8 +9,6 @@ import { AuthService } from './auth.service';
 import { GetUser, Public, Roles } from './decorator';
 import { CustomerDocument, UserDocument } from 'src/database/schema';
 import { UserRole } from 'src/enums';
-import { auth } from 'firebase-admin';
-// import { AuthApiGuard } from './auth-api.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -22,7 +20,6 @@ export class AuthController {
   }
 
   @Public()
-  // @UseGuards(AuthApiGuard)
   @Post('/customer/create')
   async createCustomer(@Body() customerDto: CreateCustomerDto) {
     const customer = await this.authService.createCustomer(
