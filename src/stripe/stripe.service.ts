@@ -315,9 +315,11 @@ export class StripeService {
     }
   }
 
-  async validateStripeCoupon(
-    couponCode: string,
-  ): Promise<{ isValid: boolean; message: string }> {
+  async validateStripeCoupon(couponCode: string): Promise<{
+    isValid: boolean;
+    message: string;
+    coupon: Stripe.Coupon | null;
+  }> {
     try {
       const promoList = await this.stripe.promotionCodes.list({
         code: couponCode,
@@ -328,7 +330,11 @@ export class StripeService {
 
       if (!promo) {
         this.logger.warn(`Coupon code not found: ${couponCode}`);
-        return { isValid: false, message: 'Coupon code not found' };
+        return {
+          isValid: false,
+          message: 'Coupon code not found',
+          coupon: null,
+        };
       }
       const couponId =
         typeof promo.promotion.coupon === 'string'
@@ -338,12 +344,20 @@ export class StripeService {
       const coupon = await this.stripe.coupons.retrieve(couponId);
 
       // console.log(`Retrieved coupon: ${JSON.stringify(coupon)}`);
-      return { isValid: coupon?.valid ?? false, message: 'Coupon is valid' };
+      return {
+        isValid: coupon?.valid ?? false,
+        message: 'Coupon is valid',
+        coupon,
+      };
     } catch (error: unknown) {
       if ((error as any)?.type === 'StripeInvalidRequestError') {
         // If the error is due to an invalid coupon code, we consider it as invalid
 
-        return { isValid: false, message: (error as any).message };
+        return {
+          isValid: false,
+          message: (error as any).message,
+          coupon: null,
+        };
       }
       const message =
         (error as any)?.message ?? 'Error validating Stripe coupon code';
