@@ -67,12 +67,9 @@ export class UsersController {
   }
 
   @Get('/search')
-  async searchArtistByName(
-    @Query() query: SearchMyArtistsQueryParamsDto,
-  ) {
-    const { metadata, artists } = await this.usersService.searchArtistByName(
-      query,
-    );
+  async searchArtistByName(@Query() query: SearchMyArtistsQueryParamsDto) {
+    const { metadata, artists } =
+      await this.usersService.searchArtistByName(query);
 
     return { metadata, artists };
   }
@@ -90,8 +87,16 @@ export class UsersController {
 
   @Roles(UserRole.ARTIST)
   @Get('/my-metrics')
-  async getArtistMetrics(@GetUser() artist: UserDocument) {
-    const metrics = await this.usersService.getArtistMetrics(artist.userId);
+  async getArtistMetrics(
+    @GetUser() artist: UserDocument,
+    @Query() q: { days: string },
+  ) {
+    const options = !isNaN(Number(q.days)) ? { days: Number(q.days) } : {};
+
+    const metrics = await this.usersService.getArtistMetrics(
+      artist.userId,
+      options,
+    );
     return { metrics };
   }
 

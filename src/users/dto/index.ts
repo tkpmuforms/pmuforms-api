@@ -93,5 +93,15 @@ export class UpdateBusinessInfoDto {
   businessAddress: string;
 
   @IsString()
+  @IsOptional()
   website?: string;
+
+  @IsUrl()
+  @IsString()
+  @IsOptional()
+  logoUrl?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  removeLogoUrl?: boolean;
 }
