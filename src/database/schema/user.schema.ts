@@ -84,6 +84,9 @@ class User {
   @Prop()
   website?: string;
 
+  @Prop()
+  logoUrl?: string;
+
   @Prop({
     enum: Object.values(SubscriptionPlan),
   })

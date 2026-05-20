@@ -80,6 +80,7 @@ export class UsersService {
           businessPhoneNumber: dto.businessPhoneNumber,
           businessAddress: dto.businessAddress,
           website: dto.website ?? null,
+          logoUrl: dto.removeLogoUrl ? null : (dto.logoUrl ?? artist.logoUrl),
         },
       },
       { new: true },
@@ -163,9 +164,7 @@ export class UsersService {
     return { message: 'success' };
   }
 
-  async searchArtistByName(
-    params: SearchMyArtistsQueryParamsDto,
-  ) {
+  async searchArtistByName(params: SearchMyArtistsQueryParamsDto) {
     const { page = 1, limit = 10, name } = params;
 
     const skip = (page - 1) * limit;
@@ -201,29 +200,43 @@ export class UsersService {
     };
   }
 
-  async getArtistMetrics(artistId: string) {
+  async getArtistMetrics(artistId: string, options?: { days?: number }) {
     const twelveAm = DateTime.now().startOf('day').toJSDate();
     const eleven59pm = DateTime.now().endOf('day').toJSDate();
+
+    // If days is provided, filter from X days ago until now
+    const startDate = options?.days
+      ? DateTime.now().minus({ days: options.days }).startOf('day').toJSDate()
+      : null;
+
+    const dateFilter = startDate
+      ? {
+          createdAt: {
+            $gte: startDate,
+          },
+        }
+      : {};
+
     const totalClientsPromise = this.relationshipModel
-    .aggregate([
-      { $match: { artistId } },
-      {
-        $lookup: {
-          from: 'customers',
-          localField: 'customerId',
-          foreignField: 'id',
-          as: 'customer',
+      .aggregate([
+        { $match: { artistId, ...dateFilter } },
+        {
+          $lookup: {
+            from: 'customers',
+            localField: 'customerId',
+            foreignField: 'id',
+            as: 'customer',
+          },
         },
-      },
-      { $match: { customer: { $ne: [] } } }, // only count relationships with an existing customer
-      {
-        $group: {
-          _id: '$customerId', // de-dupe in case of duplicate relationships
+        { $match: { customer: { $ne: [] } } }, // only count relationships with an existing customer
+        {
+          $group: {
+            _id: '$customerId', // de-dupe in case of duplicate relationships
+          },
         },
-      },
-      { $count: 'count' },
-    ])
-    .then((res) => res[0]?.count ?? 0);
+        { $count: 'count' },
+      ])
+      .then((res) => res[0]?.count ?? 0);
 
     const filledFormsPipeline: PipelineStage[] = [
       {
@@ -244,6 +257,7 @@ export class UsersService {
       {
         $match: {
           'appointment.artistId': artistId,
+          ...dateFilter,
         },
       },
       {
@@ -364,7 +378,7 @@ export class UsersService {
         lastName: dto.lastName ?? artist.profile?.lastName,
         phoneNumber: dto.phoneNumber ?? artist.profile?.phoneNumber,
         avatarUrl: !!dto.removeAvatar
-          ? undefined
+          ? null
           : (dto.avatarUrl ?? artist.profile?.avatarUrl),
       },
     });
